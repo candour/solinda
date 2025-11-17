@@ -1,17 +1,15 @@
 package com.example.solinda
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
+import com.google.gson.Gson
 
 class GameViewModel : ViewModel() {
 
-    val stock = Pile(PileType.STOCK)
-    val waste = Pile(PileType.WASTE)
-    val foundations = List(4) { Pile(PileType.FOUNDATION) }
-    val tableau = List(7) { Pile(PileType.TABLEAU) }
-
-    init {
-        newGame()
-    }
+    var stock = Pile(PileType.STOCK)
+    var waste = Pile(PileType.WASTE)
+    var foundations = List(4) { Pile(PileType.FOUNDATION) }
+    var tableau = List(7) { Pile(PileType.TABLEAU) }
 
     fun newGame() {
         // Clear all piles
@@ -125,5 +123,29 @@ class GameViewModel : ViewModel() {
 
     fun checkWin(): Boolean {
         return foundations.all { it.cards.size == 13 }
+    }
+
+    fun saveGame(prefs: SharedPreferences) {
+        val gameState = GameState(
+            stock = stock.toPileState(),
+            waste = waste.toPileState(),
+            foundations = foundations.map { it.toPileState() },
+            tableau = tableau.map { it.toPileState() }
+        )
+        val json = Gson().toJson(gameState)
+        prefs.edit().putString("game_state", json).apply()
+    }
+
+    fun loadGame(prefs: SharedPreferences) {
+        val json = prefs.getString("game_state", null)
+        if (json != null) {
+            val gameState = Gson().fromJson(json, GameState::class.java)
+            stock = Pile(gameState.stock)
+            waste = Pile(gameState.waste)
+            foundations = gameState.foundations.map { Pile(it) }
+            tableau = gameState.tableau.map { Pile(it) }
+        } else {
+            newGame()
+        }
     }
 }

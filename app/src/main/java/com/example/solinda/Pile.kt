@@ -27,4 +27,11 @@ class Pile(
     fun addStack(stack: List<Card>) {
         cards.addAll(stack)
     }
+
+    constructor(pileState: PileState) : this(
+        pileState.type,
+        pileState.cards.map { Card(it) }.toMutableList()
+    )
+
+    fun toPileState() = PileState(cards.map { it.toCardState() }, type)
 }

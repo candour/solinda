@@ -1,5 +1,6 @@
 package com.example.solinda
 
+import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
@@ -13,6 +14,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val prefs = getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
+        viewModel.loadGame(prefs)
 
         val frameLayout = FrameLayout(this)
 
@@ -36,5 +40,11 @@ class MainActivity : ComponentActivity() {
         frameLayout.addView(newGameButton)
 
         setContentView(frameLayout)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        val prefs = getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
+        viewModel.saveGame(prefs)
     }
 }

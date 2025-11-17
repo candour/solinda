@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "Running pre-commit hook"
+./gradlew test
+if [ $? -ne 0 ]; then
+  echo "Tests failed, commit aborted."
+  exit 1
+fi

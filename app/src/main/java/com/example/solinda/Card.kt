@@ -27,4 +27,8 @@ data class Card(
         val ranks = listOf("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
         return "${ranks[rank - 1]} of $suit"
     }
+
+    constructor(cardState: CardState) : this(cardState.suit, cardState.rank, cardState.faceUp)
+
+    fun toCardState() = CardState(suit, rank, faceUp)
 }
