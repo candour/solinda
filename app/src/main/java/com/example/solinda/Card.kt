@@ -28,7 +28,13 @@ data class Card(
         return "${ranks[rank - 1]} of $suit"
     }
 
-    constructor(cardState: CardState) : this(cardState.suit, cardState.rank, cardState.faceUp)
+    constructor(cardState: CardState) : this(
+        cardState.suit,
+        cardState.rank,
+        cardState.faceUp,
+        cardState.x,
+        cardState.y
+    )
 
-    fun toCardState() = CardState(suit, rank, faceUp)
+    fun toCardState() = CardState(suit, rank, faceUp, x, y)
 }
