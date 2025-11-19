@@ -50,11 +50,20 @@ class GameView @JvmOverloads constructor(
 
     private var previousWasteTop: Card? = null
 
+    private var cardBackImage: Bitmap? = null
     private val cardImages = mutableMapOf<String, Bitmap>()
     private val activeAnimations = mutableListOf<AnimationState>()
 
     private fun loadCardImages() {
         if (width == 0 || height == 0) return // Don't load if view not measured
+
+        val backId = resources.getIdentifier("back", "drawable", context.packageName)
+        if (backId != 0) {
+            val bitmap = BitmapFactory.decodeResource(resources, backId)
+            if (bitmap != null) {
+                cardBackImage = bitmap.scale(cardWidth.toInt(), cardHeight.toInt(), false)
+            }
+        }
 
         for (suit in Suit.entries) {
             for (rank in 1..13) {
@@ -166,11 +175,15 @@ class GameView @JvmOverloads constructor(
             val image = cardImages[card.imageName]
             image?.let { canvas.drawBitmap(it, x, y, paint) }
         } else {
-            val bgPaint = Paint().apply {
-                color = Color.DKGRAY
-                style = Paint.Style.FILL
+            cardBackImage?.let {
+                canvas.drawBitmap(it, x, y, paint)
+            } ?: run {
+                val bgPaint = Paint().apply {
+                    color = Color.DKGRAY
+                    style = Paint.Style.FILL
+                }
+                canvas.drawRoundRect(rect, 12f, 12f, bgPaint)
             }
-            canvas.drawRoundRect(rect, 12f, 12f, bgPaint)
         }
     }
 
