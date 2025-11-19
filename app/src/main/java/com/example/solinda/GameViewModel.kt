@@ -125,6 +125,35 @@ class GameViewModel : ViewModel() {
         return foundations.all { it.cards.size == 13 }
     }
 
+    fun isGameWinnable(): Boolean {
+        val allTableauCardsFaceUp = tableau.all { pile -> pile.cards.all { it.faceUp } }
+        return stock.cards.isEmpty() && allTableauCardsFaceUp
+    }
+
+    fun autoMoveToFoundation(): Pair<Card, Pile>? {
+        // First, check the waste pile
+        waste.topCard()?.let { card ->
+            foundations.firstOrNull { canPlaceOnFoundation(card, it) }?.let { foundation ->
+                waste.removeTopCard()
+                foundation.addCard(card)
+                return Pair(card, foundation)
+            }
+        }
+
+        // Then, check the tableau piles
+        for (pile in tableau) {
+            pile.topCard()?.let { card ->
+                foundations.firstOrNull { canPlaceOnFoundation(card, it) }?.let { foundation ->
+                    pile.removeTopCard()
+                    foundation.addCard(card)
+                    return Pair(card, foundation)
+                }
+            }
+        }
+
+        return null
+    }
+
     fun saveGame(prefs: SharedPreferences) {
         val gameState = GameState(
             stock = stock.toPileState(),

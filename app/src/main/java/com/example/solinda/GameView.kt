@@ -53,6 +53,7 @@ class GameView @JvmOverloads constructor(
     private var cardBackImage: Bitmap? = null
     private val cardImages = mutableMapOf<String, Bitmap>()
     private val activeAnimations = mutableListOf<AnimationState>()
+    private var isAutoCompleting = false
 
     private fun loadCardImages() {
         if (width == 0 || height == 0) return // Don't load if view not measured
@@ -188,12 +189,12 @@ class GameView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (isAutoCompleting || activeAnimations.isNotEmpty()) return true
+
         val x = event.x
         val y = event.y
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                if (activeAnimations.isNotEmpty()) return true
-
                 downX = x
                 downY = y
                 isDragging = false
@@ -284,6 +285,7 @@ class GameView @JvmOverloads constructor(
                                             viewModel.moveToFoundation(fromPile, foundation)
                                             resetDrag()
                                             invalidate()
+                                            checkForAutoComplete()
                                             return true
                                         }
                                     }
@@ -299,6 +301,7 @@ class GameView @JvmOverloads constructor(
                                         viewModel.moveStackToTableau(fromPile, stack, pile)
                                         resetDrag()
                                         invalidate()
+                                        checkForAutoComplete()
                                         return true
                                     }
                                 }
@@ -320,7 +323,10 @@ class GameView @JvmOverloads constructor(
                                     performClick()
                                     val targetX = getPileX(targetPile)
                                     val targetY = getPileY(targetPile)
-                                    animateCardTo(card, targetX, targetY) { invalidate() }
+                                    animateCardTo(card, targetX, targetY) {
+                                        invalidate()
+                                        checkForAutoComplete()
+                                    }
                                 }
                             }
                         }
@@ -388,5 +394,34 @@ class GameView @JvmOverloads constructor(
         isDragging = false
         dragX = 0f
         dragY = 0f
+    }
+
+    private fun runAutoCompleteStep() {
+        if (!isAutoCompleting) return
+
+        val result = viewModel.autoMoveToFoundation()
+        if (result != null) {
+            val (card, pile) = result
+            val targetX = getPileX(pile)
+            val targetY = getPileY(pile)
+            animateCardTo(card, targetX, targetY) {
+                runAutoCompleteStep()
+            }
+        } else {
+            isAutoCompleting = false
+            invalidate()
+        }
+    }
+
+    fun startAutoCompleteAnimation() {
+        if (isAutoCompleting) return
+        isAutoCompleting = true
+        runAutoCompleteStep()
+    }
+
+    private fun checkForAutoComplete() {
+        if (viewModel.isGameWinnable()) {
+            startAutoCompleteAnimation()
+        }
     }
 }

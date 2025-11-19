@@ -29,8 +29,9 @@ class MainActivity : ComponentActivity() {
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = 32
+                gravity = Gravity.TOP or Gravity.END
+                topMargin = 32
+                marginEnd = 32
             }
             setOnClickListener {
                 viewModel.newGame()
