@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.END
-                topMargin = 32
+                topMargin = 64
                 marginEnd = 32
             }
             setOnClickListener {
