@@ -34,6 +34,7 @@ class GameView @JvmOverloads constructor(
     private val isLandscape get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     private val cardWidth get() = if (isLandscape) width / 8f else width / 8.5f
     private val cardHeight get() = if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
+    private val tableauStartX get() = if (isLandscape) 50f + cardWidth / 2f else 50f
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
@@ -116,22 +117,21 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawStockAndWaste(canvas: Canvas, animatingCards: List<Card>) {
-        drawPile(canvas, viewModel.stock, 50f, animatingCards)
-        val wasteX = if (isLandscape) (cardWidth) + 80f else 200f
-        drawPile(canvas, viewModel.waste, wasteX, animatingCards)
+        drawPile(canvas, viewModel.stock, getPileX(viewModel.stock), animatingCards)
+        drawPile(canvas, viewModel.waste, getPileX(viewModel.waste), animatingCards)
     }
 
     private fun drawFoundations(canvas: Canvas, animatingCards: List<Card>) {
         for (i in 0..3) {
-            val x = width - (5 - i) * (cardWidth + 20f)
-            drawPile(canvas, viewModel.foundations[i], x, animatingCards)
+            val pile = viewModel.foundations[i]
+            drawPile(canvas, pile, getPileX(pile), animatingCards)
         }
     }
 
     private fun drawTableau(canvas: Canvas, animatingCards: List<Card>) {
         for (i in 0..6) {
-            val x = 50f + i * (cardWidth + 20f)
             val pile = viewModel.tableau[i]
+            val x = getPileX(pile)
             pile.cards.forEachIndexed { j, card ->
                 val y = cardHeight + (if (isLandscape) 55f else height / 4f + 50f) + j * 50f
                 if (dragStack?.contains(card) != true && card !in animatingCards) {
@@ -202,8 +202,10 @@ class GameView @JvmOverloads constructor(
                 potentialDragStack = null
 
                 // Tap stock
-                val stockY = if (isLandscape) 50f else height / 4f
-                if (x in 50f..(50f + cardWidth) && y in stockY..(stockY + cardHeight)) {
+                val stockPile = viewModel.stock
+                val stockX = getPileX(stockPile)
+                val stockY = getPileY(stockPile)
+                if (x in stockX..(stockX + cardWidth) && y in stockY..(stockY + cardHeight)) {
                     performClick()
                     previousWasteTop = viewModel.waste.topCard()
                     val drawnCard = viewModel.drawFromStock()
@@ -229,11 +231,12 @@ class GameView @JvmOverloads constructor(
                     val cards = pile.cards
                     if (pile.type == PileType.TABLEAU) {
                         // More precise hit detection for stacked tableau cards
+                        val pileX = getPileX(pile)
                         for (i in cards.indices.reversed()) {
                             val card = cards[i]
                             val isTopCard = (i == cards.size - 1)
                             val tappableHeight = if (isTopCard) cardHeight else 50f
-                            if (card.faceUp && x in card.x..(card.x + cardWidth) && y in card.y..(card.y + tappableHeight)) {
+                            if (card.faceUp && x in pileX..(pileX + cardWidth) && y in card.y..(card.y + tappableHeight)) {
                                 potentialDragPile = pile
                                 potentialDragStack = cards.subList(i, cards.size).toMutableList()
                                 return true
@@ -346,9 +349,9 @@ class GameView @JvmOverloads constructor(
     private fun getPileX(pile: Pile): Float {
         return when (pile.type) {
             PileType.STOCK -> 50f
-            PileType.WASTE -> 200f
+            PileType.WASTE -> if (isLandscape) cardWidth + 80f else 200f
             PileType.FOUNDATION -> width - (5 - viewModel.foundations.indexOf(pile)) * (cardWidth + 20f)
-            PileType.TABLEAU -> 50f + viewModel.tableau.indexOf(pile) * (cardWidth + 20f)
+            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + 20f)
         }
     }
 
