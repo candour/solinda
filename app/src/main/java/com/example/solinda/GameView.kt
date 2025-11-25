@@ -34,7 +34,7 @@ class GameView @JvmOverloads constructor(
     private val isLandscape get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     private val cardWidth get() = if (isLandscape) width / 8f else width / 8.5f
     private val cardHeight get() = if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
-    private val tableauStartX get() = if (isLandscape) 30f + cardWidth / 2f else 50f
+    private val tableauStartX get() = if (isLandscape) 20f + cardWidth / 2f else 50f
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
