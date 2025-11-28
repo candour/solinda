@@ -160,11 +160,21 @@ class GameView @JvmOverloads constructor(
             return
         }
 
-        pile.topCard()?.let {
-            if (dragStack?.contains(it) != true && it !in animatingCards) {
-                drawCard(canvas, it, x, y)
-                it.x = x
-                it.y = y
+        val topCard = pile.topCard()
+        if (topCard != null) {
+            val isDraggingTopCard = dragStack?.contains(topCard) == true
+
+            if (isDraggingTopCard && pile.cards.size > 1) {
+                val secondCard = pile.cards[pile.cards.size - 2]
+                if (secondCard !in animatingCards) {
+                    drawCard(canvas, secondCard, x, y)
+                    secondCard.x = x
+                    secondCard.y = y
+                }
+            } else if (!isDraggingTopCard && topCard !in animatingCards) {
+                drawCard(canvas, topCard, x, y)
+                topCard.x = x
+                topCard.y = y
             }
         }
     }
