@@ -49,7 +49,7 @@ class GameView @JvmOverloads constructor(
     private var potentialDragStack: MutableList<Card>? = null
     private var potentialDragPile: Pile? = null
 
-    private var previousWasteTop: Card? = null
+    private var previousWasteState: List<Card> = emptyList()
 
     private var cardBackImage: Bitmap? = null
     private val cardImages = mutableMapOf<String, Bitmap>()
@@ -152,29 +152,40 @@ class GameView @JvmOverloads constructor(
         }
         canvas.drawRect(x, y, x + cardWidth, y + cardHeight, border)
 
-        if (pile.type == PileType.WASTE && previousWasteTop != null) {
-            drawCard(canvas, previousWasteTop!!, x, y)
-            previousWasteTop!!.x = x
-            previousWasteTop!!.y = y
-            // No need to continue, the animating card will be drawn over this
-            return
-        }
-
-        val topCard = pile.topCard()
-        if (topCard != null) {
-            val isDraggingTopCard = dragStack?.contains(topCard) == true
-
-            if (isDraggingTopCard && pile.cards.size > 1) {
-                val secondCard = pile.cards[pile.cards.size - 2]
-                if (secondCard !in animatingCards) {
-                    drawCard(canvas, secondCard, x, y)
-                    secondCard.x = x
-                    secondCard.y = y
+        when (pile.type) {
+            PileType.WASTE -> {
+                val cardsToDraw = if (previousWasteState.isNotEmpty()) {
+                    previousWasteState.takeLast(3)
+                } else {
+                    pile.cards.takeLast(3)
                 }
-            } else if (!isDraggingTopCard && topCard !in animatingCards) {
-                drawCard(canvas, topCard, x, y)
-                topCard.x = x
-                topCard.y = y
+                cardsToDraw.forEachIndexed { i, card ->
+                    if (dragStack?.contains(card) != true && card !in animatingCards) {
+                        val cardX = x + i * 40f
+                        drawCard(canvas, card, cardX, y)
+                        card.x = cardX
+                        card.y = y
+                    }
+                }
+            }
+
+            else -> {
+                val topCard = pile.topCard()
+                if (topCard != null) {
+                    val isDraggingTopCard = dragStack?.contains(topCard) == true
+                    if (isDraggingTopCard && pile.cards.size > 1) {
+                        val secondCard = pile.cards[pile.cards.size - 2]
+                        if (secondCard !in animatingCards) {
+                            drawCard(canvas, secondCard, x, y)
+                            secondCard.x = x
+                            secondCard.y = y
+                        }
+                    } else if (!isDraggingTopCard && topCard !in animatingCards) {
+                        drawCard(canvas, topCard, x, y)
+                        topCard.x = x
+                        topCard.y = y
+                    }
+                }
             }
         }
     }
@@ -217,17 +228,20 @@ class GameView @JvmOverloads constructor(
                 val stockY = getPileY(stockPile)
                 if (x in stockX..(stockX + cardWidth) && y in stockY..(stockY + cardHeight)) {
                     performClick()
-                    previousWasteTop = viewModel.waste.topCard()
-                    val drawnCard = viewModel.drawFromStock()
-                    if (drawnCard != null) {
-                        val stockX = getPileX(viewModel.stock)
+                    previousWasteState = viewModel.waste.cards.toList()
+                    val drawnCards = viewModel.drawFromStock()
+                    if (drawnCards.isNotEmpty()) {
                         val wasteX = getPileX(viewModel.waste)
-                        val pileY = getPileY(viewModel.waste) // Same Y for stock and waste
-                        drawnCard.x = stockX
-                        drawnCard.y = pileY
-                        animateCardTo(drawnCard, wasteX, pileY) {
-                            previousWasteTop = null
-                            invalidate()
+                        val pileY = getPileY(viewModel.waste)
+                        drawnCards.forEachIndexed { i, card ->
+                            card.x = stockX
+                            card.y = pileY
+                            animateCardTo(card, wasteX + i * 40f, pileY) {
+                                if (i == drawnCards.size - 1) {
+                                    previousWasteState = emptyList()
+                                    invalidate()
+                                }
+                            }
                         }
                     } else {
                         invalidate() // Recycled

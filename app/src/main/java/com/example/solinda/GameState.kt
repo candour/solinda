@@ -4,7 +4,8 @@ data class GameState(
     val stock: PileState,
     val waste: PileState,
     val foundations: List<PileState>,
-    val tableau: List<PileState>
+    val tableau: List<PileState>,
+    var dealCount: Int = 1
 )
 
 data class PileState(
