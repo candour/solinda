@@ -11,6 +11,8 @@ class GameViewModel : ViewModel() {
     var foundations = List(4) { Pile(PileType.FOUNDATION) }
     var tableau = List(7) { Pile(PileType.TABLEAU) }
 
+    var dealCount: Int = 1
+
     fun newGame() {
         // Clear all piles
         stock.cards.clear()
@@ -36,18 +38,22 @@ class GameViewModel : ViewModel() {
         stock.cards.addAll(deck)
     }
 
-    fun drawFromStock(): Card? {
+    fun drawFromStock(): List<Card> {
+        val drawnCards = mutableListOf<Card>()
         if (stock.cards.isEmpty()) {
             // Recycle waste into stock
             stock.cards.addAll(waste.cards.map { it.copy(faceUp = false) }.asReversed())
             waste.cards.clear()
-            return null
         } else {
-            val card = stock.removeTopCard()!!
-            card.faceUp = true
-            waste.addCard(card)
-            return card
+            val count = stock.cards.size.coerceAtMost(dealCount)
+            for (i in 0 until count) {
+                val card = stock.removeTopCard()!!
+                card.faceUp = true
+                waste.addCard(card)
+                drawnCards.add(card)
+            }
         }
+        return drawnCards
     }
 
     fun canPlaceOnFoundation(card: Card, foundation: Pile): Boolean {
@@ -159,7 +165,8 @@ class GameViewModel : ViewModel() {
             stock = stock.toPileState(),
             waste = waste.toPileState(),
             foundations = foundations.map { it.toPileState() },
-            tableau = tableau.map { it.toPileState() }
+            tableau = tableau.map { it.toPileState() },
+            dealCount = dealCount
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
@@ -173,6 +180,7 @@ class GameViewModel : ViewModel() {
             waste = Pile(gameState.waste)
             foundations = gameState.foundations.map { Pile(it) }
             tableau = gameState.tableau.map { Pile(it) }
+            dealCount = gameState.dealCount
         } else {
             newGame()
         }
