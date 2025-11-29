@@ -10,4 +10,5 @@ interface GameRules {
     fun canPlaceOnTableau(stack: List<Card>, tableauPile: Pile): Boolean
     fun revealIfNeeded(pile: Pile)
     fun checkWin(foundations: List<Pile>): Boolean
+    fun isGameWinnable(stock: Pile, waste: Pile, tableau: List<Pile>): Boolean
 }

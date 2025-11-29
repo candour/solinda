@@ -76,4 +76,8 @@ class KlondikeRules : GameRules {
     override fun checkWin(foundations: List<Pile>): Boolean {
         return foundations.all { it.cards.size == 13 }
     }
+
+    override fun isGameWinnable(stock: Pile, waste: Pile, tableau: List<Pile>): Boolean {
+        return stock.cards.isEmpty() && waste.cards.isEmpty() && tableau.all { pile -> pile.cards.all { card -> card.faceUp } }
+    }
 }
