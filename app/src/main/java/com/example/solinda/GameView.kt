@@ -122,15 +122,13 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawFoundations(canvas: Canvas, animatingCards: List<Card>) {
-        for (i in 0..3) {
-            val pile = viewModel.foundations[i]
+        viewModel.foundations.forEach { pile ->
             drawPile(canvas, pile, getPileX(pile), animatingCards)
         }
     }
 
     private fun drawTableau(canvas: Canvas, animatingCards: List<Card>) {
-        for (i in 0..6) {
-            val pile = viewModel.tableau[i]
+        viewModel.tableau.forEach { pile ->
             val x = getPileX(pile)
             pile.cards.forEachIndexed { j, card ->
                 val y = cardHeight + (if (isLandscape) 55f else height / 4f + 50f) + j * 50f
