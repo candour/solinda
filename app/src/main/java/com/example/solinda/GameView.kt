@@ -374,7 +374,10 @@ class GameView @JvmOverloads constructor(
         return when (pile.type) {
             PileType.STOCK -> 50f
             PileType.WASTE -> if (isLandscape) cardWidth + 80f else 200f
-            PileType.FOUNDATION -> width - (5 - viewModel.foundations.indexOf(pile)) * (cardWidth + 20f)
+            PileType.FOUNDATION -> {
+                val multiplier = if (isLandscape) 5 else 4
+                width - (multiplier - viewModel.foundations.indexOf(pile)) * (cardWidth + 20f)
+            }
             PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + 20f)
         }
     }
