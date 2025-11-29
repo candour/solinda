@@ -72,6 +72,18 @@ class GameViewModel : ViewModel() {
         return gameRules.checkWin(foundations)
     }
 
+    fun canPlaceOnFoundation(card: Card, foundation: Pile): Boolean {
+        return gameRules.canPlaceOnFoundation(card, foundation)
+    }
+
+    fun canPlaceOnTableau(stack: List<Card>, tableauPile: Pile): Boolean {
+        return gameRules.canPlaceOnTableau(stack, tableauPile)
+    }
+
+    fun isGameWinnable(): Boolean {
+        return gameRules.isGameWinnable(stock, waste, tableau)
+    }
+
     fun autoMoveToFoundation(): Pair<Card, Pile>? {
         // First, check the waste pile
         waste.topCard()?.let { card ->
