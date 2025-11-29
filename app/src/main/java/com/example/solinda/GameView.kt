@@ -32,8 +32,19 @@ class GameView @JvmOverloads constructor(
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val isLandscape get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    private val cardWidth get() = if (isLandscape) width / 8f else width / 8.5f
-    private val cardHeight get() = if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
+
+    private val cardWidth
+        get() = when (viewModel.gameType) {
+            GameType.KLONDIKE -> if (isLandscape) width / 8f else width / 8.5f
+            GameType.FREECELL -> if (isLandscape) width / 9f else width / 9.5f
+        }
+
+    private val cardHeight
+        get() = when (viewModel.gameType) {
+            GameType.KLONDIKE -> if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
+            GameType.FREECELL -> if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
+        }
+
     private val tableauStartX get() = if (isLandscape) 10f + cardWidth / 2f else 50f
 
     // Drag and tap state
@@ -90,7 +101,11 @@ class GameView @JvmOverloads constructor(
         canvas.drawColor("#0B6623".toColorInt())
         val animatingCards = activeAnimations.map { it.card }
 
-        drawStockAndWaste(canvas, animatingCards)
+        if (viewModel.gameType == GameType.KLONDIKE) {
+            drawStockAndWaste(canvas, animatingCards)
+        } else {
+            drawFreeCells(canvas, animatingCards)
+        }
         drawFoundations(canvas, animatingCards)
         drawTableau(canvas, animatingCards)
 
@@ -117,9 +132,16 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawStockAndWaste(canvas: Canvas, animatingCards: List<Card>) {
-        drawPile(canvas, viewModel.stock, getPileX(viewModel.stock), animatingCards)
-        drawPile(canvas, viewModel.waste, getPileX(viewModel.waste), animatingCards)
+        drawPile(canvas, viewModel.stock.first(), getPileX(viewModel.stock.first()), animatingCards)
+        drawPile(canvas, viewModel.waste.first(), getPileX(viewModel.waste.first()), animatingCards)
     }
+
+    private fun drawFreeCells(canvas: Canvas, animatingCards: List<Card>) {
+        viewModel.freeCells.forEach { pile ->
+            drawPile(canvas, pile, getPileX(pile), animatingCards)
+        }
+    }
+
 
     private fun drawFoundations(canvas: Canvas, animatingCards: List<Card>) {
         viewModel.foundations.forEach { pile ->
@@ -220,57 +242,70 @@ class GameView @JvmOverloads constructor(
                 potentialDragPile = null
                 potentialDragStack = null
 
-                // Tap stock
-                val stockPile = viewModel.stock
-                val stockX = getPileX(stockPile)
-                val stockY = getPileY(stockPile)
-                if (x in stockX..(stockX + cardWidth) && y in stockY..(stockY + cardHeight)) {
-                    performClick()
-                    previousWasteState = viewModel.waste.cards.toList()
-                    val drawnCards = viewModel.drawFromStock()
-                    if (drawnCards.isNotEmpty()) {
-                        val wasteX = getPileX(viewModel.waste)
-                        val pileY = getPileY(viewModel.waste)
-                        drawnCards.forEachIndexed { i, card ->
-                            card.x = stockX
-                            card.y = pileY
-                            animateCardTo(card, wasteX + i * 40f, pileY) {
-                                if (i == drawnCards.size - 1) {
-                                    previousWasteState = emptyList()
-                                    invalidate()
+                if (viewModel.gameType == GameType.KLONDIKE) {
+                    // Tap stock
+                    val stockPile = viewModel.stock.first()
+                    val stockX = getPileX(stockPile)
+                    val stockY = getPileY(stockPile)
+                    if (x in stockX..(stockX + cardWidth) && y in stockY..(stockY + cardHeight)) {
+                        performClick()
+                        previousWasteState = viewModel.waste.first().cards.toList()
+                        val drawnCards = viewModel.drawFromStock()
+                        if (drawnCards.isNotEmpty()) {
+                            val wasteX = getPileX(viewModel.waste.first())
+                            val pileY = getPileY(viewModel.waste.first())
+                            drawnCards.forEachIndexed { i, card ->
+                                card.x = stockX
+                                card.y = pileY
+                                animateCardTo(card, wasteX + i * 40f, pileY) {
+                                    if (i == drawnCards.size - 1) {
+                                        previousWasteState = emptyList()
+                                        invalidate()
+                                    }
                                 }
                             }
+                        } else {
+                            invalidate() // Recycled
                         }
-                    } else {
-                        invalidate() // Recycled
+                        return true
                     }
-                    return true
                 }
 
 
-                // Check for card tap/drag on tableau, waste, or foundations
-                for (pile in viewModel.tableau.reversed() + listOf(viewModel.waste) + viewModel.foundations.reversed()) {
-                    val cards = pile.cards
-                    if (pile.type == PileType.TABLEAU) {
-                        // More precise hit detection for stacked tableau cards
-                        val pileX = getPileX(pile)
-                        for (i in cards.indices.reversed()) {
-                            val card = cards[i]
-                            val isTopCard = (i == cards.size - 1)
-                            val tappableHeight = if (isTopCard) cardHeight else 50f
-                            if (card.faceUp && x in pileX..(pileX + cardWidth) && y in card.y..(card.y + tappableHeight)) {
+                // Check for card tap/drag on tableau, waste, foundations or freecells
+                val pileGroups = mutableListOf<List<Pile>>()
+                pileGroups.add(viewModel.tableau.reversed())
+                if (viewModel.gameType == GameType.KLONDIKE) {
+                    pileGroups.add(viewModel.waste)
+                }
+                pileGroups.add(viewModel.foundations.reversed())
+                pileGroups.add(viewModel.freeCells.reversed())
+
+
+                for (pileGroup in pileGroups) {
+                    for (pile in pileGroup) {
+                        val cards = pile.cards
+                        if (pile.type == PileType.TABLEAU) {
+                            // More precise hit detection for stacked tableau cards
+                            val pileX = getPileX(pile)
+                            for (i in cards.indices.reversed()) {
+                                val card = cards[i]
+                                val isTopCard = (i == cards.size - 1)
+                                val tappableHeight = if (isTopCard) cardHeight else 50f
+                                if (card.faceUp && x in pileX..(pileX + cardWidth) && y in card.y..(card.y + tappableHeight)) {
+                                    potentialDragPile = pile
+                                    potentialDragStack = cards.subList(i, cards.size).toMutableList()
+                                    return true
+                                }
+                            }
+                        } else {
+                            // For waste and foundations, only the top card is interactive
+                            val topCard = pile.topCard()
+                            if (topCard != null && x in topCard.x..(topCard.x + cardWidth) && y in topCard.y..(topCard.y + cardHeight)) {
                                 potentialDragPile = pile
-                                potentialDragStack = cards.subList(i, cards.size).toMutableList()
+                                potentialDragStack = mutableListOf(topCard)
                                 return true
                             }
-                        }
-                    } else {
-                        // For waste and foundations, only the top card is interactive
-                        val topCard = pile.topCard()
-                        if (topCard != null && x in topCard.x..(topCard.x + cardWidth) && y in topCard.y..(topCard.y + cardHeight)) {
-                            potentialDragPile = pile
-                            potentialDragStack = mutableListOf(topCard)
-                            return true
                         }
                     }
                 }
@@ -315,6 +350,18 @@ class GameView @JvmOverloads constructor(
                                         }
                                     }
                                 }
+                                // Try freecells (only single cards)
+                                for (freeCell in viewModel.freeCells) {
+                                    val fcx = getPileX(freeCell)
+                                    val fcy = getPileY(freeCell)
+                                    if (x in fcx..(fcx + cardWidth) && y in fcy..(fcy + cardHeight)) {
+                                        viewModel.moveStackToFreeCell(fromPile, stack, freeCell)
+                                        resetDrag()
+                                        invalidate()
+                                        checkForAutoComplete()
+                                        return true
+                                    }
+                                }
                             }
 
                             // Try tableau
@@ -342,7 +389,7 @@ class GameView @JvmOverloads constructor(
                     potentialDragStack?.let { stack ->
                         potentialDragPile?.let { pile ->
                             val card = stack.first()
-                             if (card == pile.topCard()) { // Can only auto-move top card
+                            if (card == pile.topCard()) { // Can only auto-move top card
                                 val targetPile = viewModel.autoMoveCard(card, pile)
                                 if (targetPile != null) {
                                     performClick()
@@ -369,14 +416,17 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileX(pile: Pile): Float {
+        val spacing = 20f
         return when (pile.type) {
             PileType.STOCK -> 50f
             PileType.WASTE -> if (isLandscape) cardWidth + 80f else 200f
             PileType.FOUNDATION -> {
-                val multiplier = if (isLandscape) 5 else 4
-                width - (multiplier - viewModel.foundations.indexOf(pile)) * (cardWidth + 20f)
+                val startX = width - (4 * (cardWidth + spacing))
+                startX + viewModel.foundations.indexOf(pile) * (cardWidth + spacing)
             }
-            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + 20f)
+
+            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + spacing)
+            PileType.FREE_CELL -> 50f + viewModel.freeCells.indexOf(pile) * (cardWidth + spacing)
         }
     }
 
@@ -387,6 +437,7 @@ class GameView @JvmOverloads constructor(
                 val size = (pile.cards.size).coerceAtLeast(0)
                 baseOffset + size * 50f
             }
+
             else -> if (isLandscape) 50f else height / 4f
         }
     }
@@ -404,6 +455,7 @@ class GameView @JvmOverloads constructor(
             override fun onAnimationStart(animation: Animator) {
                 activeAnimations.add(animationState)
             }
+
             override fun onAnimationEnd(animation: Animator) {
                 card.x = targetX
                 card.y = targetY

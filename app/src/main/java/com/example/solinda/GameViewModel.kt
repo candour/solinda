@@ -6,21 +6,51 @@ import com.google.gson.Gson
 
 class GameViewModel : ViewModel() {
 
-    private val gameRules: GameRules = KlondikeRules()
+    var gameType: GameType = GameType.KLONDIKE
+    private lateinit var gameRules: GameRules
 
-    var stock = Pile(PileType.STOCK)
-    var waste = Pile(PileType.WASTE)
-    var foundations = List(gameRules.foundationPilesCount) { Pile(PileType.FOUNDATION) }
-    var tableau = List(gameRules.tableauPilesCount) { Pile(PileType.TABLEAU) }
+    var stock = mutableListOf<Pile>()
+    var waste = mutableListOf<Pile>()
+    var foundations = mutableListOf<Pile>()
+    var tableau = mutableListOf<Pile>()
+    var freeCells = mutableListOf<Pile>()
 
     var dealCount: Int = 1
 
+    init {
+        initializeGameType(gameType)
+    }
+
+    fun initializeGameType(newGameType: GameType) {
+        gameType = newGameType
+        gameRules = when (gameType) {
+            GameType.KLONDIKE -> KlondikeRules()
+            GameType.FREECELL -> FreeCellRules()
+        }
+        stock = MutableList(gameRules.stockPilesCount) { Pile(PileType.STOCK) }
+        waste = MutableList(gameRules.wastePilesCount) { Pile(PileType.WASTE) }
+        foundations = MutableList(gameRules.foundationPilesCount) { Pile(PileType.FOUNDATION) }
+        tableau = MutableList(gameRules.tableauPilesCount) { Pile(PileType.TABLEAU) }
+        freeCells = MutableList(gameRules.freeCellsCount) { Pile(PileType.FREE_CELL) }
+        newGame()
+    }
+
+    fun resetGame(newGameType: GameType, newDealCount: Int) {
+        dealCount = newDealCount
+        if (gameType != newGameType) {
+            initializeGameType(newGameType)
+        } else {
+            newGame()
+        }
+    }
+
+
     fun newGame() {
-        gameRules.setupBoard(stock, waste, foundations, tableau)
+        gameRules.setupBoard(stock, waste, foundations, tableau, freeCells)
     }
 
     fun drawFromStock(): List<Card> {
-        return gameRules.drawFromStock(stock, waste, dealCount)
+        return gameRules.drawFromStock(stock.first(), waste.first(), dealCount)
     }
 
     fun moveToFoundation(fromPile: Pile, foundation: Pile) {
@@ -41,6 +71,14 @@ class GameViewModel : ViewModel() {
             fromPile.removeStack(stack)
             gameRules.revealIfNeeded(fromPile)
             toPile.addStack(stack)
+        }
+    }
+
+    fun moveStackToFreeCell(fromPile: Pile, stack: MutableList<Card>, toPile: Pile) {
+        if (gameRules.canPlaceOnFreeCell(stack, toPile)) {
+            fromPile.removeStack(stack)
+            toPile.addStack(stack)
+            gameRules.revealIfNeeded(fromPile)
         }
     }
 
@@ -81,18 +119,21 @@ class GameViewModel : ViewModel() {
     }
 
     fun isGameWinnable(): Boolean {
-        return gameRules.isGameWinnable(stock, waste, tableau)
+        return gameRules.isGameWinnable(stock, waste, tableau, freeCells)
     }
 
     fun autoMoveToFoundation(): Pair<Card, Pile>? {
         // First, check the waste pile
-        waste.topCard()?.let { card ->
-            foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                waste.removeTopCard()
-                foundation.addCard(card)
-                return Pair(card, foundation)
+        if (waste.isNotEmpty()) {
+            waste.first().topCard()?.let { card ->
+                foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
+                    waste.first().removeTopCard()
+                    foundation.addCard(card)
+                    return Pair(card, foundation)
+                }
             }
         }
+
 
         // Then, check the tableau piles
         for (pile in tableau) {
@@ -110,11 +151,13 @@ class GameViewModel : ViewModel() {
 
     fun saveGame(prefs: SharedPreferences) {
         val gameState = GameState(
-            stock = stock.toPileState(),
-            waste = waste.toPileState(),
+            stock = stock.map { it.toPileState() },
+            waste = waste.map { it.toPileState() },
             foundations = foundations.map { it.toPileState() },
             tableau = tableau.map { it.toPileState() },
-            dealCount = dealCount
+            freeCells = freeCells.map { it.toPileState() },
+            dealCount = dealCount,
+            gameType = gameType
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
@@ -124,13 +167,15 @@ class GameViewModel : ViewModel() {
         val json = prefs.getString("game_state", null)
         if (json != null) {
             val gameState = Gson().fromJson(json, GameState::class.java)
-            stock = Pile(gameState.stock)
-            waste = Pile(gameState.waste)
-            foundations = gameState.foundations.map { Pile(it) }
-            tableau = gameState.tableau.map { Pile(it) }
+            initializeGameType(gameState.gameType)
+            stock = gameState.stock.map { Pile(it) }.toMutableList()
+            waste = gameState.waste.map { Pile(it) }.toMutableList()
+            foundations = gameState.foundations.map { Pile(it) }.toMutableList()
+            tableau = gameState.tableau.map { Pile(it) }.toMutableList()
+            freeCells = gameState.freeCells.map { Pile(it) }.toMutableList()
             dealCount = gameState.dealCount
         } else {
-            newGame()
+            initializeGameType(GameType.KLONDIKE)
         }
     }
 }

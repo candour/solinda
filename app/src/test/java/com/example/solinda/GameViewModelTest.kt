@@ -1,5 +1,6 @@
 package com.example.solinda
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -22,16 +23,16 @@ class GameViewModelTest {
 
     @Test
     fun `isGameWinnable is true when stock and waste are empty and all tableau cards are face up`() {
-        viewModel.stock.cards.clear()
-        viewModel.waste.cards.clear()
+        viewModel.stock.first().cards.clear()
+        viewModel.waste.first().cards.clear()
         viewModel.tableau.forEach { pile -> pile.cards.forEach { card -> card.faceUp = true } }
         assertTrue(viewModel.isGameWinnable())
     }
 
     @Test
     fun `isGameWinnable is false when stock and waste are empty but tableau has face down cards`() {
-        viewModel.stock.cards.clear()
-        viewModel.waste.cards.clear()
+        viewModel.stock.first().cards.clear()
+        viewModel.waste.first().cards.clear()
         // Ensure at least one card is face down
         viewModel.tableau.first().cards.first().faceUp = false
         assertFalse(viewModel.isGameWinnable())
@@ -77,5 +78,11 @@ class GameViewModelTest {
         tableauPile.addCard(kingOfSpades)
         assertFalse(viewModel.canPlaceOnTableau(listOf(queenOfSpades), tableauPile))
         assertFalse(viewModel.canPlaceOnTableau(listOf(jackOfHearts), tableauPile))
+    }
+
+    @Test
+    fun `initializeGameType sets the correct game type`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        assertEquals(GameType.FREECELL, viewModel.gameType)
     }
 }

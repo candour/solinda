@@ -1,11 +1,13 @@
 package com.example.solinda
 
 data class GameState(
-    val stock: PileState,
-    val waste: PileState,
+    val stock: List<PileState>,
+    val waste: List<PileState>,
     val foundations: List<PileState>,
     val tableau: List<PileState>,
-    var dealCount: Int = 1
+    val freeCells: List<PileState>,
+    var dealCount: Int = 1,
+    val gameType: GameType
 )
 
 data class PileState(

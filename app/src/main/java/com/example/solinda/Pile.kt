@@ -1,6 +1,6 @@
 package com.example.solinda
 
-enum class PileType { STOCK, WASTE, FOUNDATION, TABLEAU }
+enum class PileType { STOCK, WASTE, FOUNDATION, TABLEAU, FREE_CELL }
 
 class Pile(
     val type: PileType,
