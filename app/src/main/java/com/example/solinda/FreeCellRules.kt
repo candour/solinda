@@ -1,11 +1,12 @@
 package com.example.solinda
 
-class KlondikeRules : GameRules {
+class FreeCellRules : GameRules {
     override val foundationPilesCount: Int = 4
-    override val tableauPilesCount: Int = 7
-    override val freeCellsCount: Int = 0
-    override val stockPilesCount: Int = 1
-    override val wastePilesCount: Int = 1
+    override val tableauPilesCount: Int = 8
+    override val freeCellsCount: Int = 4
+    override val stockPilesCount: Int = 0
+    override val wastePilesCount: Int = 0
+
 
     override fun setupBoard(
         stock: List<Pile>,
@@ -15,10 +16,11 @@ class KlondikeRules : GameRules {
         freeCells: List<Pile>
     ) {
         // Clear all piles
-        stock.first().cards.clear()
-        waste.first().cards.clear()
+        stock.forEach { it.cards.clear() }
+        waste.forEach { it.cards.clear() }
         foundations.forEach { it.cards.clear() }
         tableau.forEach { it.cards.clear() }
+        freeCells.forEach { it.cards.clear() }
 
         val deck = mutableListOf<Card>()
         for (suit in Suit.entries) {
@@ -27,33 +29,17 @@ class KlondikeRules : GameRules {
         deck.shuffle()
 
         // Deal tableau
-        tableau.forEachIndexed { index, pile ->
-            for (i in 0..index) {
-                val card = deck.removeFirst()
-                card.faceUp = (i == index)
-                pile.addCard(card)
-            }
+        var currentPile = 0
+        for (card in deck) {
+            card.faceUp = true
+            tableau[currentPile].addCard(card)
+            currentPile = (currentPile + 1) % tableauPilesCount
         }
-
-        stock.first().cards.addAll(deck)
     }
 
     override fun drawFromStock(stock: Pile, waste: Pile, dealCount: Int): List<Card> {
-        val drawnCards = mutableListOf<Card>()
-        if (stock.cards.isEmpty()) {
-            // Recycle waste into stock
-            stock.cards.addAll(waste.cards.map { it.copy(faceUp = false) }.asReversed())
-            waste.cards.clear()
-        } else {
-            val count = stock.cards.size.coerceAtMost(dealCount)
-            for (i in 0 until count) {
-                val card = stock.removeTopCard()!!
-                card.faceUp = true
-                waste.addCard(card)
-                drawnCards.add(card)
-            }
-        }
-        return drawnCards
+        // Not applicable to FreeCell
+        return emptyList()
     }
 
     override fun canPlaceOnFoundation(card: Card, foundation: Pile): Boolean {
@@ -70,20 +56,19 @@ class KlondikeRules : GameRules {
         val top = tableauPile.topCard()
         val bottomCard = stack.first()
         return when {
-            tableauPile.isEmpty() -> bottomCard.rank == 13
+            tableauPile.isEmpty() -> true
             top != null && top.color != bottomCard.color && bottomCard.rank == top.rank - 1 -> true
             else -> false
         }
     }
 
     override fun canPlaceOnFreeCell(stack: List<Card>, freeCell: Pile): Boolean {
-        return false
+        return freeCell.isEmpty() && stack.size == 1
     }
 
+
     override fun revealIfNeeded(pile: Pile) {
-        if (pile.type == PileType.TABLEAU && pile.topCard()?.faceUp == false) {
-            pile.topCard()?.faceUp = true
-        }
+        // Not applicable to FreeCell, all cards are dealt face up
     }
 
     override fun checkWin(foundations: List<Pile>): Boolean {
@@ -96,6 +81,7 @@ class KlondikeRules : GameRules {
         tableau: List<Pile>,
         freeCells: List<Pile>
     ): Boolean {
-        return stock.first().cards.isEmpty() && waste.first().cards.isEmpty() && tableau.all { pile -> pile.cards.all { card -> card.faceUp } }
+        // For now, we'll consider the game always winnable until a more complex algorithm is needed.
+        return true
     }
 }
