@@ -96,11 +96,22 @@ class GameViewModel : ViewModel() {
         }
 
         // Priority 2: Move to a tableau pile
-        tableau.firstOrNull { it != fromPile && gameRules.canPlaceOnTableau(listOf(card), it, freeCells, tableau) }?.let { targetTableau ->
+        val validTableauMoves = tableau.filter { it != fromPile && gameRules.canPlaceOnTableau(listOf(card), it, freeCells, tableau) }
+        val (emptyPiles, stackedPiles) = validTableauMoves.partition { it.isEmpty() }
+
+        val targetPile = if (stackedPiles.isNotEmpty()) {
+            stackedPiles.maxByOrNull { it.cards.size }
+        } else if (emptyPiles.isNotEmpty()) {
+            emptyPiles.first()
+        } else {
+            null
+        }
+
+        targetPile?.let {
             val cardToMove = fromPile.removeTopCard()!!
             gameRules.revealIfNeeded(fromPile)
-            targetTableau.addCard(cardToMove)
-            return targetTableau
+            it.addCard(cardToMove)
+            return it
         }
 
         return null
@@ -123,7 +134,18 @@ class GameViewModel : ViewModel() {
     }
 
     fun autoMoveToFoundation(): Pair<Card, Pile>? {
-        // First, check the waste pile
+        // First, check the free cells
+        for (pile in freeCells) {
+            pile.topCard()?.let { card ->
+                foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
+                    pile.removeTopCard()
+                    foundation.addCard(card)
+                    return Pair(card, foundation)
+                }
+            }
+        }
+
+        // Then, check the waste pile
         if (waste.isNotEmpty()) {
             waste.first().topCard()?.let { card ->
                 foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->

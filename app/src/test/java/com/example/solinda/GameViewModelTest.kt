@@ -85,4 +85,50 @@ class GameViewModelTest {
         viewModel.initializeGameType(GameType.FREECELL)
         assertEquals(GameType.FREECELL, viewModel.gameType)
     }
+
+    @Test
+    fun `autoMoveCard prioritizes longest tableau stack`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+
+        // Clear all piles for a clean slate
+        viewModel.tableau.forEach { it.cards.clear() }
+        viewModel.freeCells.forEach { it.cards.clear() }
+
+        val cardToMove = Card(Suit.HEARTS, 4)
+        val fromPile = viewModel.tableau[0]
+        fromPile.addCard(cardToMove)
+
+        // Destination 1: Empty pile (lowest priority)
+        val emptyPile = viewModel.tableau[1] // Stays empty
+
+        // Destination 2: Shorter valid stack
+        val shortStack = viewModel.tableau[2]
+        shortStack.addCard(Card(Suit.CLUBS, 5)) // Valid destination for Heart 4
+
+        // Destination 3: Longest valid stack (highest priority)
+        val longStack = viewModel.tableau[3]
+        longStack.addCard(Card(Suit.DIAMONDS, 6))
+        longStack.addCard(Card(Suit.SPADES, 5)) // Valid destination for Heart 4
+
+        // Act
+        val targetPile = viewModel.autoMoveCard(cardToMove, fromPile)
+
+        // Assert
+        assertEquals("Card should move to the longest stack", longStack, targetPile)
+        assertEquals("Longest stack should now have 3 cards", 3, longStack.cards.size)
+        assertTrue("Card to move should be at the top of the longest stack", longStack.topCard() == cardToMove)
+        assertTrue("Source pile should be empty", fromPile.isEmpty())
+        assertTrue("Short stack should be unchanged", shortStack.cards.size == 1)
+        assertTrue("Empty pile should remain empty", emptyPile.isEmpty())
+    }
+
+    @Test
+    fun `autoMoveToFoundation checks free cells`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        val aceOfSpades = Card(Suit.SPADES, 1)
+        viewModel.freeCells[0].addCard(aceOfSpades)
+
+        viewModel.autoMoveToFoundation()
+        assertEquals(aceOfSpades, viewModel.foundations[0].topCard())
+    }
 }
