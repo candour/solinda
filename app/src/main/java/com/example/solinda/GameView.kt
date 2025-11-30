@@ -45,7 +45,19 @@ class GameView @JvmOverloads constructor(
             GameType.FREECELL -> if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
         }
 
-    private val tableauStartX get() = if (isLandscape) 10f + cardWidth / 2f else 50f
+    private val horizontalPadding
+        get() = when (viewModel.gameType) {
+            GameType.KLONDIKE -> 50f
+            GameType.FREECELL -> if (isLandscape) 50f else 20f
+        }
+
+    private val cardSpacing
+        get() = when (viewModel.gameType) {
+            GameType.KLONDIKE -> 20f
+            GameType.FREECELL -> if (isLandscape) 20f else 10f
+        }
+
+    private val tableauStartX get() = if (isLandscape) 10f + cardWidth / 2f else horizontalPadding
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
@@ -416,17 +428,17 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileX(pile: Pile): Float {
-        val spacing = 20f
         return when (pile.type) {
-            PileType.STOCK -> 50f
+            PileType.STOCK -> horizontalPadding
             PileType.WASTE -> if (isLandscape) cardWidth + 80f else 200f
             PileType.FOUNDATION -> {
-                val startX = width - (4 * (cardWidth + spacing))
-                startX + viewModel.foundations.indexOf(pile) * (cardWidth + spacing)
+                val foundationCount = viewModel.foundations.size
+                val startX = width - (foundationCount * (cardWidth + cardSpacing))
+                startX + viewModel.foundations.indexOf(pile) * (cardWidth + cardSpacing)
             }
 
-            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + spacing)
-            PileType.FREE_CELL -> 50f + viewModel.freeCells.indexOf(pile) * (cardWidth + spacing)
+            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + cardSpacing)
+            PileType.FREE_CELL -> horizontalPadding + viewModel.freeCells.indexOf(pile) * (cardWidth + cardSpacing)
         }
     }
 

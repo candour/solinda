@@ -67,7 +67,7 @@ class GameViewModel : ViewModel() {
     fun moveStackToTableau(fromPile: Pile, stack: MutableList<Card>, toPile: Pile) {
         if (fromPile.type == PileType.FOUNDATION && stack.size > 1) return
 
-        if (gameRules.canPlaceOnTableau(stack, toPile)) {
+        if (gameRules.canPlaceOnTableau(stack, toPile, freeCells, tableau)) {
             fromPile.removeStack(stack)
             gameRules.revealIfNeeded(fromPile)
             toPile.addStack(stack)
@@ -96,7 +96,7 @@ class GameViewModel : ViewModel() {
         }
 
         // Priority 2: Move to a tableau pile
-        tableau.firstOrNull { it != fromPile && gameRules.canPlaceOnTableau(listOf(card), it) }?.let { targetTableau ->
+        tableau.firstOrNull { it != fromPile && gameRules.canPlaceOnTableau(listOf(card), it, freeCells, tableau) }?.let { targetTableau ->
             val cardToMove = fromPile.removeTopCard()!!
             gameRules.revealIfNeeded(fromPile)
             targetTableau.addCard(cardToMove)
@@ -114,8 +114,8 @@ class GameViewModel : ViewModel() {
         return gameRules.canPlaceOnFoundation(card, foundation)
     }
 
-    fun canPlaceOnTableau(stack: List<Card>, tableauPile: Pile): Boolean {
-        return gameRules.canPlaceOnTableau(stack, tableauPile)
+    fun canPlaceOnTableau(stack: List<Card>, toPile: Pile): Boolean {
+        return gameRules.canPlaceOnTableau(stack, toPile, freeCells, tableau)
     }
 
     fun isGameWinnable(): Boolean {
