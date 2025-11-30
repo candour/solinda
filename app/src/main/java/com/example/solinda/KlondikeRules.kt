@@ -65,12 +65,12 @@ class KlondikeRules : GameRules {
         }
     }
 
-    override fun canPlaceOnTableau(stack: List<Card>, tableauPile: Pile): Boolean {
+    override fun canPlaceOnTableau(stack: List<Card>, toPile: Pile, freeCells: List<Pile>, tableau: List<Pile>): Boolean {
         if (stack.isEmpty()) return false
-        val top = tableauPile.topCard()
+        val top = toPile.topCard()
         val bottomCard = stack.first()
         return when {
-            tableauPile.isEmpty() -> bottomCard.rank == 13
+            toPile.isEmpty() -> bottomCard.rank == 13
             top != null && top.color != bottomCard.color && bottomCard.rank == top.rank - 1 -> true
             else -> false
         }

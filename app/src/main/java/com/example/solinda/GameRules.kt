@@ -17,7 +17,7 @@ interface GameRules {
 
     fun drawFromStock(stock: Pile, waste: Pile, dealCount: Int): List<Card>
     fun canPlaceOnFoundation(card: Card, foundation: Pile): Boolean
-    fun canPlaceOnTableau(stack: List<Card>, tableauPile: Pile): Boolean
+    fun canPlaceOnTableau(stack: List<Card>, toPile: Pile, freeCells: List<Pile>, tableau: List<Pile>): Boolean
     fun canPlaceOnFreeCell(stack: List<Card>, freeCell: Pile): Boolean
     fun revealIfNeeded(pile: Pile)
     fun checkWin(foundations: List<Pile>): Boolean
