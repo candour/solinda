@@ -21,6 +21,13 @@ class GameView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    companion object {
+        private const val SCREEN_MARGIN = 10f
+        private const val INTER_CARD_SPACING = 5f
+        private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
+        private const val WASTE_CARD_REVEAL_FACTOR = 0.3f
+    }
+
     private data class AnimationState(
         val card: Card,
         val startX: Float,
@@ -33,31 +40,19 @@ class GameView @JvmOverloads constructor(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val isLandscape get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    private val cardWidth
-        get() = when (viewModel.gameType) {
-            GameType.KLONDIKE -> if (isLandscape) width / 8f else width / 8.5f
-            GameType.FREECELL -> if (isLandscape) width / 9f else width / 9.5f
-        }
+    private var calculatedCardWidth: Float = 0f
+    private var calculatedCardHeight: Float = 0f
 
-    private val cardHeight
-        get() = when (viewModel.gameType) {
-            GameType.KLONDIKE -> if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
-            GameType.FREECELL -> if (isLandscape) cardWidth * 1.1f else cardWidth * 1.4f
-        }
+    private fun calculateCardLayout(numPiles: Int) {
+        if (numPiles == 0) return
+        val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
+        val totalMargin = 2 * SCREEN_MARGIN
+        val availableWidth = width - totalMargin - totalSpacing
+        calculatedCardWidth = if (numPiles > 0) availableWidth / numPiles else 0f
+        calculatedCardHeight = calculatedCardWidth * 1.4f // Standard card aspect ratio
+    }
 
-    private val horizontalPadding
-        get() = when (viewModel.gameType) {
-            GameType.KLONDIKE -> 50f
-            GameType.FREECELL -> if (isLandscape) 50f else 20f
-        }
-
-    private val cardSpacing
-        get() = when (viewModel.gameType) {
-            GameType.KLONDIKE -> 20f
-            GameType.FREECELL -> if (isLandscape) 20f else 10f
-        }
-
-    private val tableauStartX get() = if (isLandscape) 10f + cardWidth / 2f else horizontalPadding
+    private val tableauStartX get() = SCREEN_MARGIN
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
@@ -86,7 +81,7 @@ class GameView @JvmOverloads constructor(
         if (backId != 0) {
             val bitmap = BitmapFactory.decodeResource(resources, backId)
             if (bitmap != null) {
-                cardBackImage = bitmap.scale(cardWidth.toInt(), cardHeight.toInt(), false)
+                cardBackImage = bitmap.scale(calculatedCardWidth.toInt(), calculatedCardHeight.toInt(), false)
             }
         }
 
@@ -97,7 +92,7 @@ class GameView @JvmOverloads constructor(
                 if (id != 0) {
                     val bitmap = BitmapFactory.decodeResource(resources, id)
                     if (bitmap != null) {
-                        cardImages[card.imageName] = bitmap.scale(cardWidth.toInt(), cardHeight.toInt(), false)
+                        cardImages[card.imageName] = bitmap.scale(calculatedCardWidth.toInt(), calculatedCardHeight.toInt(), false)
                     }
                 }
             }
@@ -106,6 +101,8 @@ class GameView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        if (w == 0 || h == 0) return
+        calculateCardLayout(viewModel.tableau.size)
         loadCardImages()
     }
 
@@ -124,7 +121,7 @@ class GameView @JvmOverloads constructor(
         // Draw currently dragging cards
         dragStack?.let { stack ->
             stack.forEachIndexed { i, card ->
-                drawCard(canvas, card, dragX - cardWidth / 2, dragY - cardHeight / 2 + i * 50f)
+                drawCard(canvas, card, dragX - calculatedCardWidth / 2, dragY - calculatedCardHeight / 2 + i * (calculatedCardHeight * TABLEAU_CARD_REVEAL_FACTOR))
             }
         }
 
@@ -165,7 +162,7 @@ class GameView @JvmOverloads constructor(
         viewModel.tableau.forEach { pile ->
             val x = getPileX(pile)
             pile.cards.forEachIndexed { j, card ->
-                val y = cardHeight + (if (isLandscape) 55f else height / 4f + 50f) + j * 50f
+                val y = getPileY(pile) + j * (calculatedCardHeight * TABLEAU_CARD_REVEAL_FACTOR)
                 if (dragStack?.contains(card) != true && card !in animatingCards) {
                     drawCard(canvas, card, x, y)
                 }
@@ -176,13 +173,13 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawPile(canvas: Canvas, pile: Pile, x: Float, animatingCards: List<Card>) {
-        val y = if (isLandscape) 50f else height / 4f
+        val y = getPileY(pile)
         val border = Paint().apply {
             color = Color.argb(100, 255, 255, 255)
             style = Paint.Style.STROKE
             strokeWidth = 4f
         }
-        canvas.drawRect(x, y, x + cardWidth, y + cardHeight, border)
+        canvas.drawRect(x - calculatedCardWidth / 2, y - calculatedCardHeight / 2, x + calculatedCardWidth / 2, y + calculatedCardHeight / 2, border)
 
         when (pile.type) {
             PileType.WASTE -> {
@@ -193,7 +190,7 @@ class GameView @JvmOverloads constructor(
                 }
                 cardsToDraw.forEachIndexed { i, card ->
                     if (dragStack?.contains(card) != true && card !in animatingCards) {
-                        val cardX = x + i * 40f
+                        val cardX = x + i * (calculatedCardWidth * WASTE_CARD_REVEAL_FACTOR)
                         drawCard(canvas, card, cardX, y)
                         card.x = cardX
                         card.y = y
@@ -223,14 +220,16 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawCard(canvas: Canvas, card: Card, x: Float, y: Float) {
-        val rect = RectF(x, y, x + cardWidth, y + cardHeight)
+        val left = x - calculatedCardWidth / 2f
+        val top = y - calculatedCardHeight / 2f
+        val rect = RectF(left, top, left + calculatedCardWidth, top + calculatedCardHeight)
 
         if (card.faceUp) {
             val image = cardImages[card.imageName]
-            image?.let { canvas.drawBitmap(it, x, y, paint) }
+            image?.let { canvas.drawBitmap(it, left, top, paint) }
         } else {
             cardBackImage?.let {
-                canvas.drawBitmap(it, x, y, paint)
+                canvas.drawBitmap(it, left, top, paint)
             } ?: run {
                 val bgPaint = Paint().apply {
                     color = Color.DKGRAY
@@ -428,29 +427,25 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileX(pile: Pile): Float {
-        return when (pile.type) {
-            PileType.STOCK -> horizontalPadding
-            PileType.WASTE -> if (isLandscape) cardWidth + 80f else 200f
+        val topLeftX =  when (pile.type) {
+            PileType.STOCK -> SCREEN_MARGIN
+            PileType.WASTE -> SCREEN_MARGIN + calculatedCardWidth + INTER_CARD_SPACING
             PileType.FOUNDATION -> {
                 val foundationCount = viewModel.foundations.size
-                val startX = width - (foundationCount * (cardWidth + cardSpacing))
-                startX + viewModel.foundations.indexOf(pile) * (cardWidth + cardSpacing)
+                val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - SCREEN_MARGIN
+                startX + viewModel.foundations.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
             }
 
-            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (cardWidth + cardSpacing)
-            PileType.FREE_CELL -> horizontalPadding + viewModel.freeCells.indexOf(pile) * (cardWidth + cardSpacing)
+            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
+            PileType.FREE_CELL -> SCREEN_MARGIN + viewModel.freeCells.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
         }
+        return topLeftX + calculatedCardWidth / 2f
     }
 
     private fun getPileY(pile: Pile): Float {
         return when (pile.type) {
-            PileType.TABLEAU -> {
-                val baseOffset = cardHeight + (if (isLandscape) 50f else height / 4f + 50f)
-                val size = (pile.cards.size).coerceAtLeast(0)
-                baseOffset + size * 50f
-            }
-
-            else -> if (isLandscape) 50f else height / 4f
+            PileType.TABLEAU -> SCREEN_MARGIN + calculatedCardHeight + SCREEN_MARGIN + calculatedCardHeight / 2f
+            else -> SCREEN_MARGIN + calculatedCardHeight / 2f
         }
     }
 
