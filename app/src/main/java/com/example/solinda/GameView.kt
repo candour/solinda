@@ -258,7 +258,7 @@ class GameView @JvmOverloads constructor(
                     val stockPile = viewModel.stock.first()
                     val stockX = getPileX(stockPile)
                     val stockY = getPileY(stockPile)
-                    if (x in stockX..(stockX + cardWidth) && y in stockY..(stockY + cardHeight)) {
+                    if (x in stockX..(stockX + calculatedCardWidth) && y in stockY..(stockY + calculatedCardHeight)) {
                         performClick()
                         previousWasteState = viewModel.waste.first().cards.toList()
                         val drawnCards = viewModel.drawFromStock()
@@ -302,8 +302,8 @@ class GameView @JvmOverloads constructor(
                             for (i in cards.indices.reversed()) {
                                 val card = cards[i]
                                 val isTopCard = (i == cards.size - 1)
-                                val tappableHeight = if (isTopCard) cardHeight else 50f
-                                if (card.faceUp && x in pileX..(pileX + cardWidth) && y in card.y..(card.y + tappableHeight)) {
+                                val tappableHeight = if (isTopCard) calculatedCardHeight else 50f
+                                if (card.faceUp && x in pileX..(pileX + calculatedCardWidth) && y in card.y..(card.y + tappableHeight)) {
                                     potentialDragPile = pile
                                     potentialDragStack = cards.subList(i, cards.size).toMutableList()
                                     return true
@@ -312,7 +312,7 @@ class GameView @JvmOverloads constructor(
                         } else {
                             // For waste and foundations, only the top card is interactive
                             val topCard = pile.topCard()
-                            if (topCard != null && x in topCard.x..(topCard.x + cardWidth) && y in topCard.y..(topCard.y + cardHeight)) {
+                            if (topCard != null && x in topCard.x..(topCard.x + calculatedCardWidth) && y in topCard.y..(topCard.y + calculatedCardHeight)) {
                                 potentialDragPile = pile
                                 potentialDragStack = mutableListOf(topCard)
                                 return true
@@ -351,7 +351,7 @@ class GameView @JvmOverloads constructor(
                                 for (foundation in viewModel.foundations) {
                                     val fx = getPileX(foundation)
                                     val fy = getPileY(foundation)
-                                    if (x in fx..(fx + cardWidth) && y in fy..(fy + cardHeight)) {
+                                    if (x in fx..(fx + calculatedCardWidth) && y in fy..(fy + calculatedCardHeight)) {
                                         if (viewModel.canPlaceOnFoundation(stack.first(), foundation)) {
                                             viewModel.moveToFoundation(fromPile, foundation)
                                             resetDrag()
@@ -365,7 +365,7 @@ class GameView @JvmOverloads constructor(
                                 for (freeCell in viewModel.freeCells) {
                                     val fcx = getPileX(freeCell)
                                     val fcy = getPileY(freeCell)
-                                    if (x in fcx..(fcx + cardWidth) && y in fcy..(fcy + cardHeight)) {
+                                    if (x in fcx..(fcx + calculatedCardWidth) && y in fcy..(fcy + calculatedCardHeight)) {
                                         viewModel.moveStackToFreeCell(fromPile, stack, freeCell)
                                         resetDrag()
                                         invalidate()
@@ -378,8 +378,8 @@ class GameView @JvmOverloads constructor(
                             // Try tableau
                             for (pile in viewModel.tableau) {
                                 val px = getPileX(pile)
-                                val tableauStartY = cardHeight + (if (isLandscape) 50f else height / 4f + 50f)
-                                if (x in px..(px + cardWidth) && y > tableauStartY) {
+                                val tableauStartY = calculatedCardHeight + (if (isLandscape) 50f else height / 4f + 50f)
+                                if (x in px..(px + calculatedCardWidth) && y > tableauStartY) {
                                     if (viewModel.canPlaceOnTableau(stack, pile)) {
                                         viewModel.moveStackToTableau(fromPile, stack, pile)
                                         resetDrag()
