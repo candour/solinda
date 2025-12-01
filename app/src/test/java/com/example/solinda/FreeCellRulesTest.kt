@@ -45,7 +45,7 @@ class FreeCellRulesTest {
     @Test
     fun `canPlaceOnTableau is true for any card on empty tableau`() {
         val card = Card(Suit.SPADES, 10)
-        assertTrue(rules.canPlaceOnTableau(listOf(card), tableau.first()))
+        assertTrue(rules.canPlaceOnTableau(listOf(card), tableau.first(), freeCells, tableau))
     }
 
     @Test
@@ -54,7 +54,7 @@ class FreeCellRulesTest {
         val nineOfHearts = Card(Suit.HEARTS, 9)
         val tableauPile = tableau.first()
         tableauPile.addCard(tenOfSpades)
-        assertTrue(rules.canPlaceOnTableau(listOf(nineOfHearts), tableauPile))
+        assertTrue(rules.canPlaceOnTableau(listOf(nineOfHearts), tableauPile, freeCells, tableau))
     }
 
     @Test
@@ -63,7 +63,7 @@ class FreeCellRulesTest {
         val nineOfClubs = Card(Suit.CLUBS, 9)
         val tableauPile = tableau.first()
         tableauPile.addCard(tenOfSpades)
-        assertFalse(rules.canPlaceOnTableau(listOf(nineOfClubs), tableauPile))
+        assertFalse(rules.canPlaceOnTableau(listOf(nineOfClubs), tableauPile, freeCells, tableau))
     }
 
     @Test
@@ -72,7 +72,7 @@ class FreeCellRulesTest {
         val nineOfHearts = Card(Suit.HEARTS, 9)
         val tableauPile = tableau.first()
         tableauPile.addCard(nineOfHearts)
-        assertFalse(rules.canPlaceOnTableau(listOf(tenOfSpades), tableauPile))
+        assertFalse(rules.canPlaceOnTableau(listOf(tenOfSpades), tableauPile, freeCells, tableau))
     }
 
     @Test
