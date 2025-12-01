@@ -22,8 +22,8 @@ class GameView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        private const val SCREEN_MARGIN = 10f
-        private const val INTER_CARD_SPACING = 5f
+        private const val SCREEN_MARGIN = 30f
+        private const val INTER_CARD_SPACING = 10f
         private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
         private const val WASTE_CARD_REVEAL_FACTOR = 0.3f
     }
@@ -49,7 +49,7 @@ class GameView @JvmOverloads constructor(
         val totalMargin = 2 * SCREEN_MARGIN
         val availableWidth = width - totalMargin - totalSpacing
         calculatedCardWidth = if (numPiles > 0) availableWidth / numPiles else 0f
-        calculatedCardHeight = calculatedCardWidth * 1.4f // Standard card aspect ratio
+        calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
     }
 
     private val tableauStartX get() = SCREEN_MARGIN
