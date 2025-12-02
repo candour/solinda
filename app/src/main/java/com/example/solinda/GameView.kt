@@ -46,6 +46,11 @@ class GameView @JvmOverloads constructor(
     private fun calculateCardLayout(numPiles: Int) {
         if (width == 0 || height == 0 || numPiles == 0) return
 
+        val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
+        val totalMargin = 2 * SCREEN_MARGIN
+        val availableWidth = width - totalMargin - totalSpacing
+        calculatedCardWidth = availableWidth / numPiles
+
         if (isLandscape) {
             // In landscape, height is the limiting factor.
             // We need space for the top row (foundations), a margin, and the tableau piles.
@@ -55,13 +60,7 @@ class GameView @JvmOverloads constructor(
             // safe card height.
             val totalVerticalMargin = 3 * SCREEN_MARGIN
             calculatedCardHeight = (height - totalVerticalMargin) / 4.0f
-            calculatedCardWidth = calculatedCardHeight / 1.2f // Maintain aspect ratio
         } else {
-            // In portrait, width is the limiting factor.
-            val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
-            val totalMargin = 2 * SCREEN_MARGIN
-            val availableWidth = width - totalMargin - totalSpacing
-            calculatedCardWidth = if (numPiles > 0) availableWidth / numPiles else 0f
             calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
         }
     }
