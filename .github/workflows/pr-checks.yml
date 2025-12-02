@@ -22,6 +22,9 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run unit tests
+        run: ./gradlew clean
+
+      - name: Run unit tests
         run: ./gradlew test
 
       - name: Run Android Lint
