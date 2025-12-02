@@ -44,12 +44,26 @@ class GameView @JvmOverloads constructor(
     private var calculatedCardHeight: Float = 0f
 
     private fun calculateCardLayout(numPiles: Int) {
-        if (numPiles == 0) return
-        val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
-        val totalMargin = 2 * SCREEN_MARGIN
-        val availableWidth = width - totalMargin - totalSpacing
-        calculatedCardWidth = if (numPiles > 0) availableWidth / numPiles else 0f
-        calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
+        if (width == 0 || height == 0 || numPiles == 0) return
+
+        if (isLandscape) {
+            // In landscape, height is the limiting factor.
+            // We need space for the top row (foundations), a margin, and the tableau piles.
+            // The tallest tableau pile at the start of Klondike has 7 cards, which when fanned out
+            // takes up about 2.8 card heights. Adding the top row and margins, we can estimate
+            // the total height needed. A divisor of 4.0f for the available height gives us a
+            // safe card height.
+            val totalVerticalMargin = 3 * SCREEN_MARGIN
+            calculatedCardHeight = (height - totalVerticalMargin) / 4.0f
+            calculatedCardWidth = calculatedCardHeight / 1.2f // Maintain aspect ratio
+        } else {
+            // In portrait, width is the limiting factor.
+            val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
+            val totalMargin = 2 * SCREEN_MARGIN
+            val availableWidth = width - totalMargin - totalSpacing
+            calculatedCardWidth = if (numPiles > 0) availableWidth / numPiles else 0f
+            calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
+        }
     }
 
     private val tableauStartX get() = SCREEN_MARGIN
@@ -258,7 +272,8 @@ class GameView @JvmOverloads constructor(
                     val stockPile = viewModel.stock.first()
                     val stockX = getPileX(stockPile)
                     val stockY = getPileY(stockPile)
-                    if (x in stockX..(stockX + calculatedCardWidth) && y in stockY..(stockY + calculatedCardHeight)) {
+                    val stockRect = RectF(stockX - calculatedCardWidth / 2, stockY - calculatedCardHeight / 2, stockX + calculatedCardWidth / 2, stockY + calculatedCardHeight / 2)
+                    if (stockRect.contains(x, y)) {
                         performClick()
                         previousWasteState = viewModel.waste.first().cards.toList()
                         val drawnCards = viewModel.drawFromStock()
@@ -299,23 +314,40 @@ class GameView @JvmOverloads constructor(
                         if (pile.type == PileType.TABLEAU) {
                             // More precise hit detection for stacked tableau cards
                             val pileX = getPileX(pile)
-                            for (i in cards.indices.reversed()) {
-                                val card = cards[i]
-                                val isTopCard = (i == cards.size - 1)
-                                val tappableHeight = if (isTopCard) calculatedCardHeight else 50f
-                                if (card.faceUp && x in pileX..(pileX + calculatedCardWidth) && y in card.y..(card.y + tappableHeight)) {
-                                    potentialDragPile = pile
-                                    potentialDragStack = cards.subList(i, cards.size).toMutableList()
-                                    return true
+                            val pileLeft = pileX - calculatedCardWidth / 2f
+                            val pileRight = pileX + calculatedCardWidth / 2f
+
+                            if (x in pileLeft..pileRight) { // Check if touch is within the pile's width
+                                for (i in cards.indices.reversed()) {
+                                    val card = cards[i]
+                                    if (card.faceUp) {
+                                        val cardTop = card.y - calculatedCardHeight / 2f
+                                        val cardBottom = card.y + calculatedCardHeight / 2f
+
+                                        val isTopCard = (i == cards.size - 1)
+                                        val tappableBottom = if (isTopCard) cardBottom else {
+                                            val nextCardTop = cards[i + 1].y - calculatedCardHeight / 2f
+                                            nextCardTop
+                                        }
+
+                                        if (y in cardTop..tappableBottom) {
+                                            potentialDragPile = pile
+                                            potentialDragStack = cards.subList(i, cards.size).toMutableList()
+                                            return true
+                                        }
+                                    }
                                 }
                             }
                         } else {
                             // For waste and foundations, only the top card is interactive
                             val topCard = pile.topCard()
-                            if (topCard != null && x in topCard.x..(topCard.x + calculatedCardWidth) && y in topCard.y..(topCard.y + calculatedCardHeight)) {
-                                potentialDragPile = pile
-                                potentialDragStack = mutableListOf(topCard)
-                                return true
+                            if (topCard != null) {
+                                val cardRect = RectF(topCard.x - calculatedCardWidth / 2, topCard.y - calculatedCardHeight / 2, topCard.x + calculatedCardWidth / 2, topCard.y + calculatedCardHeight / 2)
+                                if (cardRect.contains(x,y)) {
+                                    potentialDragPile = pile
+                                    potentialDragStack = mutableListOf(topCard)
+                                    return true
+                                }
                             }
                         }
                     }
