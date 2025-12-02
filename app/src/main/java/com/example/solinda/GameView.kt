@@ -378,7 +378,7 @@ class GameView @JvmOverloads constructor(
                             // Try tableau
                             for (pile in viewModel.tableau) {
                                 val px = getPileX(pile)
-                                val tableauStartY = calculatedCardHeight + (if (isLandscape) 50f else height / 4f + 50f)
+                                val tableauStartY = getPileY(pile) - calculatedCardHeight / 2f
                                 if (x in px..(px + calculatedCardWidth) && y > tableauStartY) {
                                     if (viewModel.canPlaceOnTableau(stack, pile)) {
                                         viewModel.moveStackToTableau(fromPile, stack, pile)
@@ -443,10 +443,12 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileY(pile: Pile): Float {
-        return when (pile.type) {
+        val portraitOffset = if (isLandscape) 0f else height / 3f
+        val baseY = when (pile.type) {
             PileType.TABLEAU -> SCREEN_MARGIN + calculatedCardHeight + SCREEN_MARGIN + calculatedCardHeight / 2f
             else -> SCREEN_MARGIN + calculatedCardHeight / 2f
         }
+        return baseY + portraitOffset
     }
 
     private fun animateCardTo(card: Card, targetX: Float, targetY: Float, onEnd: () -> Unit = {}) {
