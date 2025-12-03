@@ -16,6 +16,8 @@ class GameViewModel : ViewModel() {
     var freeCells = mutableListOf<Pile>()
 
     var dealCount: Int = 1
+    var leftMargin: Int = 20
+    var rightMargin: Int = 20
 
     init {
         initializeGameType(gameType)
@@ -179,7 +181,9 @@ class GameViewModel : ViewModel() {
             tableau = tableau.map { it.toPileState() },
             freeCells = freeCells.map { it.toPileState() },
             dealCount = dealCount,
-            gameType = gameType
+            gameType = gameType,
+            leftMargin = leftMargin,
+            rightMargin = rightMargin
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
@@ -196,6 +200,8 @@ class GameViewModel : ViewModel() {
             tableau = gameState.tableau.map { Pile(it) }.toMutableList()
             freeCells = gameState.freeCells.map { Pile(it) }.toMutableList()
             dealCount = gameState.dealCount
+            leftMargin = gameState.leftMargin
+            rightMargin = gameState.rightMargin
         } else {
             initializeGameType(GameType.KLONDIKE)
         }

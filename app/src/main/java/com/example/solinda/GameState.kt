@@ -7,7 +7,9 @@ data class GameState(
     val tableau: List<PileState>,
     val freeCells: List<PileState>,
     var dealCount: Int = 1,
-    val gameType: GameType
+    val gameType: GameType,
+    val leftMargin: Int = 20,
+    val rightMargin: Int = 20
 )
 
 data class PileState(

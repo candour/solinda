@@ -13,6 +13,8 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
+import android.text.InputType
+import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -117,13 +119,48 @@ class MainActivity : ComponentActivity() {
         radioGroup.check(viewModel.dealCount)
         layout.addView(radioGroup)
 
+        // Left Margin
+        val leftMarginLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 50, 0, 0)
+        }
+        val leftMarginLabel = TextView(this).apply { text = "Left Margin (dp)" }
+        leftMarginLayout.addView(leftMarginLabel)
+        val leftMarginInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(viewModel.leftMargin.toString())
+        }
+        leftMarginLayout.addView(leftMarginInput)
+        layout.addView(leftMarginLayout)
+
+
+        // Right Margin
+        val rightMarginLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 20, 0, 0)
+        }
+        val rightMarginLabel = TextView(this).apply { text = "Right Margin (dp)" }
+        rightMarginLayout.addView(rightMarginLabel)
+        val rightMarginInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(viewModel.rightMargin.toString())
+        }
+        rightMarginLayout.addView(rightMarginInput)
+        layout.addView(rightMarginLayout)
+
+
         builder.setView(layout)
 
         builder.setPositiveButton("Save") { dialog, _ ->
             val selectedGameType = GameType.entries[gameTypeSpinner.selectedItemPosition]
             val selectedDealCount = radioGroup.checkedRadioButtonId
+            val newLeftMargin = leftMarginInput.text.toString().toIntOrNull() ?: viewModel.leftMargin
+            val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: viewModel.rightMargin
 
-            if (viewModel.gameType != selectedGameType || viewModel.dealCount != selectedDealCount) {
+
+            if (viewModel.gameType != selectedGameType || viewModel.dealCount != selectedDealCount || viewModel.leftMargin != newLeftMargin || viewModel.rightMargin != newRightMargin) {
+                viewModel.leftMargin = newLeftMargin
+                viewModel.rightMargin = newRightMargin
                 viewModel.resetGame(selectedGameType, selectedDealCount)
                 gameView.invalidate()
             }
