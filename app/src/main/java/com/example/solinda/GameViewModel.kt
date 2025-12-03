@@ -18,6 +18,7 @@ class GameViewModel : ViewModel() {
     var dealCount: Int = 1
     var leftMargin: Int = 20
     var rightMargin: Int = 20
+    var tableauCardRevealFactor: Float = 0.3f
 
     init {
         initializeGameType(gameType)
@@ -183,7 +184,8 @@ class GameViewModel : ViewModel() {
             dealCount = dealCount,
             gameType = gameType,
             leftMargin = leftMargin,
-            rightMargin = rightMargin
+            rightMargin = rightMargin,
+            tableauCardRevealFactor = tableauCardRevealFactor
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
@@ -202,6 +204,7 @@ class GameViewModel : ViewModel() {
             dealCount = gameState.dealCount
             leftMargin = gameState.leftMargin
             rightMargin = gameState.rightMargin
+            tableauCardRevealFactor = gameState.tableauCardRevealFactor
         } else {
             initializeGameType(GameType.KLONDIKE)
         }

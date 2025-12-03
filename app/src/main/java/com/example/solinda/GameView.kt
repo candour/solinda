@@ -25,7 +25,6 @@ class GameView @JvmOverloads constructor(
         private const val VERTICAL_MARGIN = 40f
         private const val INTER_ROW_SPACING = 40f
         private const val INTER_CARD_SPACING = 20f
-        private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
         private const val WASTE_CARD_REVEAL_FACTOR = 0.3f
     }
 
@@ -143,7 +142,7 @@ class GameView @JvmOverloads constructor(
         // Draw currently dragging cards
         dragStack?.let { stack ->
             stack.forEachIndexed { i, card ->
-                drawCard(canvas, card, dragX - calculatedCardWidth / 2, dragY - calculatedCardHeight / 2 + i * (calculatedCardHeight * TABLEAU_CARD_REVEAL_FACTOR))
+                drawCard(canvas, card, dragX - calculatedCardWidth / 2, dragY - calculatedCardHeight / 2 + i * (calculatedCardHeight * viewModel.tableauCardRevealFactor))
             }
         }
 
@@ -184,7 +183,7 @@ class GameView @JvmOverloads constructor(
         viewModel.tableau.forEach { pile ->
             val x = getPileX(pile)
             pile.cards.forEachIndexed { j, card ->
-                val y = getPileY(pile) + j * (calculatedCardHeight * TABLEAU_CARD_REVEAL_FACTOR)
+                val y = getPileY(pile) + j * (calculatedCardHeight * viewModel.tableauCardRevealFactor)
                 if (dragStack?.contains(card) != true && card !in animatingCards) {
                     drawCard(canvas, card, x, y)
                 }
@@ -485,9 +484,14 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileY(pile: Pile): Float {
+        val topMargin = if (isLandscape) {
+            VERTICAL_MARGIN
+        } else {
+            height * 0.4f
+        }
         return when (pile.type) {
-            PileType.TABLEAU -> VERTICAL_MARGIN + calculatedCardHeight + INTER_ROW_SPACING + calculatedCardHeight / 2f
-            else -> VERTICAL_MARGIN + calculatedCardHeight / 2f
+            PileType.TABLEAU -> topMargin + calculatedCardHeight + INTER_ROW_SPACING + calculatedCardHeight / 2f
+            else -> topMargin + calculatedCardHeight / 2f
         }
     }
 

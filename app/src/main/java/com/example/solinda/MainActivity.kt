@@ -148,6 +148,20 @@ class MainActivity : ComponentActivity() {
         rightMarginLayout.addView(rightMarginInput)
         layout.addView(rightMarginLayout)
 
+        // Tableau Card Reveal Factor
+        val revealFactorLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 20, 0, 0)
+        }
+        val revealFactorLabel = TextView(this).apply { text = "Tableau Reveal (0.1-1.0)" }
+        revealFactorLayout.addView(revealFactorLabel)
+        val revealFactorInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(viewModel.tableauCardRevealFactor.toString())
+        }
+        revealFactorLayout.addView(revealFactorInput)
+        layout.addView(revealFactorLayout)
+
 
         builder.setView(layout)
 
@@ -156,11 +170,13 @@ class MainActivity : ComponentActivity() {
             val selectedDealCount = radioGroup.checkedRadioButtonId
             val newLeftMargin = leftMarginInput.text.toString().toIntOrNull() ?: viewModel.leftMargin
             val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: viewModel.rightMargin
+            val newRevealFactor = revealFactorInput.text.toString().toFloatOrNull() ?: viewModel.tableauCardRevealFactor
 
 
-            if (viewModel.gameType != selectedGameType || viewModel.dealCount != selectedDealCount || viewModel.leftMargin != newLeftMargin || viewModel.rightMargin != newRightMargin) {
+            if (viewModel.gameType != selectedGameType || viewModel.dealCount != selectedDealCount || viewModel.leftMargin != newLeftMargin || viewModel.rightMargin != newRightMargin || viewModel.tableauCardRevealFactor != newRevealFactor) {
                 viewModel.leftMargin = newLeftMargin
                 viewModel.rightMargin = newRightMargin
+                viewModel.tableauCardRevealFactor = newRevealFactor
                 viewModel.resetGame(selectedGameType, selectedDealCount)
                 gameView.invalidate()
             }
