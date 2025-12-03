@@ -9,7 +9,8 @@ data class GameState(
     var dealCount: Int = 1,
     val gameType: GameType,
     val leftMargin: Int = 20,
-    val rightMargin: Int = 20
+    val rightMargin: Int = 20,
+    val tableauCardRevealFactor: Float = 0.3f
 )
 
 data class PileState(
