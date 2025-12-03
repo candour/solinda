@@ -22,10 +22,14 @@ class GameView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        private const val SCREEN_MARGIN = 100f
+        private const val INTER_ROW_SPACING = 40f
         private const val INTER_CARD_SPACING = 20f
         private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
         private const val WASTE_CARD_REVEAL_FACTOR = 0.3f
+    }
+
+    private fun dpToPx(dp: Int): Float {
+        return dp * resources.displayMetrics.density
     }
 
     private data class AnimationState(
@@ -46,26 +50,32 @@ class GameView @JvmOverloads constructor(
     private fun calculateCardLayout(numPiles: Int) {
         if (width == 0 || height == 0 || numPiles == 0) return
 
+        val leftMarginPx = dpToPx(viewModel.leftMargin)
+        val rightMarginPx = dpToPx(viewModel.rightMargin)
+
         val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
-        val totalMargin = 2 * SCREEN_MARGIN
+        val totalMargin = leftMarginPx + rightMarginPx
         val availableWidth = width - totalMargin - totalSpacing
         calculatedCardWidth = availableWidth / numPiles
 
         if (isLandscape) {
-            // In landscape, height is the limiting factor.
-            // We need space for the top row (foundations), a margin, and the tableau piles.
-            // The tallest tableau pile at the start of Klondike has 7 cards, which when fanned out
-            // takes up about 2.8 card heights. Adding the top row and margins, we can estimate
-            // the total height needed. A divisor of 5.0f for the available height gives us a
-            // safe card height.
-            val totalVerticalMargin = 3 * SCREEN_MARGIN
-            calculatedCardHeight = (height - totalVerticalMargin) / 5.0f
+            val topMarginPx = dpToPx(viewModel.leftMargin) // Use left margin for top in landscape
+            val bottomMarginPx = dpToPx(viewModel.rightMargin) // Use right margin for bottom
+            val totalVerticalMargin = topMarginPx + bottomMarginPx + INTER_ROW_SPACING
+            val availableHeight = height - totalVerticalMargin
+            // Landscape height needs to accommodate: 1 card height for the top row,
+            // plus the fanned-out tableau. A typical Klondike game starts with 7 cards in the last pile.
+            // The revealed part is TABLEAU_CARD_REVEAL_FACTOR. So, 1 card height + 6 * revealed height.
+            // Total height needed is roughly (1 + 6 * 0.3) = 2.8 card heights.
+            // Add another card height for the top row, so ~3.8. Let's use 4.0 for a safe margin.
+            calculatedCardHeight = availableHeight / 4.0f
         } else {
-            calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
+            // Portrait mode: calculate height based on aspect ratio
+            calculatedCardHeight = calculatedCardWidth * 1.4f // A more standard card aspect ratio
         }
     }
 
-    private val tableauStartX get() = SCREEN_MARGIN
+    private val tableauStartX get() = dpToPx(viewModel.leftMargin)
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
@@ -458,28 +468,29 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileX(pile: Pile): Float {
+        val leftMarginPx = dpToPx(viewModel.leftMargin)
+        val rightMarginPx = dpToPx(viewModel.rightMargin)
         val topLeftX =  when (pile.type) {
-            PileType.STOCK -> SCREEN_MARGIN
-            PileType.WASTE -> SCREEN_MARGIN + calculatedCardWidth + INTER_CARD_SPACING
+            PileType.STOCK -> leftMarginPx
+            PileType.WASTE -> leftMarginPx + calculatedCardWidth + INTER_CARD_SPACING
             PileType.FOUNDATION -> {
                 val foundationCount = viewModel.foundations.size
-                val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - SCREEN_MARGIN
+                val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - rightMarginPx
                 startX + viewModel.foundations.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
             }
 
             PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
-            PileType.FREE_CELL -> SCREEN_MARGIN + viewModel.freeCells.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
+            PileType.FREE_CELL -> leftMarginPx + viewModel.freeCells.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
         }
         return topLeftX + calculatedCardWidth / 2f
     }
 
     private fun getPileY(pile: Pile): Float {
-        val portraitOffset = if (isLandscape) 0f else height / 3f
-        val baseY = when (pile.type) {
-            PileType.TABLEAU -> SCREEN_MARGIN + calculatedCardHeight + SCREEN_MARGIN + calculatedCardHeight / 2f
-            else -> SCREEN_MARGIN + calculatedCardHeight / 2f
+        val topMarginPx = dpToPx(viewModel.leftMargin) // Use left margin for top
+        return when (pile.type) {
+            PileType.TABLEAU -> topMarginPx + calculatedCardHeight + INTER_ROW_SPACING + calculatedCardHeight / 2f
+            else -> topMarginPx + calculatedCardHeight / 2f
         }
-        return baseY + portraitOffset
     }
 
     private fun animateCardTo(card: Card, targetX: Float, targetY: Float, onEnd: () -> Unit = {}) {
