@@ -22,6 +22,7 @@ class GameView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
+        private const val VERTICAL_MARGIN = 40f
         private const val INTER_ROW_SPACING = 40f
         private const val INTER_CARD_SPACING = 20f
         private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
@@ -59,9 +60,7 @@ class GameView @JvmOverloads constructor(
         calculatedCardWidth = availableWidth / numPiles
 
         if (isLandscape) {
-            val topMarginPx = dpToPx(viewModel.leftMargin) // Use left margin for top in landscape
-            val bottomMarginPx = dpToPx(viewModel.rightMargin) // Use right margin for bottom
-            val totalVerticalMargin = topMarginPx + bottomMarginPx + INTER_ROW_SPACING
+            val totalVerticalMargin = 2 * VERTICAL_MARGIN + INTER_ROW_SPACING
             val availableHeight = height - totalVerticalMargin
             // Landscape height needs to accommodate: 1 card height for the top row,
             // plus the fanned-out tableau. A typical Klondike game starts with 7 cards in the last pile.
@@ -486,10 +485,9 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileY(pile: Pile): Float {
-        val topMarginPx = dpToPx(viewModel.leftMargin) // Use left margin for top
         return when (pile.type) {
-            PileType.TABLEAU -> topMarginPx + calculatedCardHeight + INTER_ROW_SPACING + calculatedCardHeight / 2f
-            else -> topMarginPx + calculatedCardHeight / 2f
+            PileType.TABLEAU -> VERTICAL_MARGIN + calculatedCardHeight + INTER_ROW_SPACING + calculatedCardHeight / 2f
+            else -> VERTICAL_MARGIN + calculatedCardHeight / 2f
         }
     }
 
