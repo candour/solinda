@@ -22,8 +22,8 @@ class GameView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        private const val SCREEN_MARGIN = 30f
-        private const val INTER_CARD_SPACING = 10f
+        private const val SCREEN_MARGIN = 100f
+        private const val INTER_CARD_SPACING = 20f
         private const val TABLEAU_CARD_REVEAL_FACTOR = 0.3f
         private const val WASTE_CARD_REVEAL_FACTOR = 0.3f
     }
@@ -56,10 +56,10 @@ class GameView @JvmOverloads constructor(
             // We need space for the top row (foundations), a margin, and the tableau piles.
             // The tallest tableau pile at the start of Klondike has 7 cards, which when fanned out
             // takes up about 2.8 card heights. Adding the top row and margins, we can estimate
-            // the total height needed. A divisor of 4.0f for the available height gives us a
+            // the total height needed. A divisor of 5.0f for the available height gives us a
             // safe card height.
             val totalVerticalMargin = 3 * SCREEN_MARGIN
-            calculatedCardHeight = (height - totalVerticalMargin) / 4.0f
+            calculatedCardHeight = (height - totalVerticalMargin) / 5.0f
         } else {
             calculatedCardHeight = calculatedCardWidth * 1.2f // Standard card aspect ratio
         }
