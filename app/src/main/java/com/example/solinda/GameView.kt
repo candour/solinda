@@ -472,9 +472,14 @@ class GameView @JvmOverloads constructor(
             PileType.STOCK -> leftMarginPx
             PileType.WASTE -> leftMarginPx + calculatedCardWidth + INTER_CARD_SPACING
             PileType.FOUNDATION -> {
-                val foundationCount = viewModel.foundations.size
-                val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - rightMarginPx
-                startX + viewModel.foundations.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
+                if (viewModel.gameType == GameType.FREECELL) {
+                    val tableauIndex = 4 + viewModel.foundations.indexOf(pile)
+                    tableauStartX + tableauIndex * (calculatedCardWidth + INTER_CARD_SPACING)
+                } else {
+                    val foundationCount = viewModel.foundations.size
+                    val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - rightMarginPx
+                    startX + viewModel.foundations.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
+                }
             }
 
             PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
