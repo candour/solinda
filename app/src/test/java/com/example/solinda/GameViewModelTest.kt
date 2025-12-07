@@ -176,3 +176,88 @@ class GameViewModelTest {
         assertEquals(5, result.first().rank)
     }
 }
+
+class CalculatorViewModelTest {
+
+    private lateinit var viewModel: GameViewModel
+
+    @Before
+    fun setup() {
+        viewModel = GameViewModel()
+    }
+
+    @Test
+    fun `handleDigit appends digits correctly`() {
+        viewModel.onCalculatorInput("1")
+        viewModel.onCalculatorInput("2")
+        assertEquals("12", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `addition works correctly`() {
+        viewModel.onCalculatorInput("5")
+        viewModel.onCalculatorInput("+")
+        viewModel.onCalculatorInput("3")
+        viewModel.onCalculatorInput("=")
+        assertEquals("8.0", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `subtraction works correctly`() {
+        viewModel.onCalculatorInput("5")
+        viewModel.onCalculatorInput("-")
+        viewModel.onCalculatorInput("3")
+        viewModel.onCalculatorInput("=")
+        assertEquals("2.0", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `multiplication works correctly`() {
+        viewModel.onCalculatorInput("5")
+        viewModel.onCalculatorInput("*")
+        viewModel.onCalculatorInput("3")
+        viewModel.onCalculatorInput("=")
+        assertEquals("15.0", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `division works correctly`() {
+        viewModel.onCalculatorInput("6")
+        viewModel.onCalculatorInput("/")
+        viewModel.onCalculatorInput("3")
+        viewModel.onCalculatorInput("=")
+        assertEquals("2.0", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `percentage works correctly`() {
+        viewModel.onCalculatorInput("50")
+        viewModel.onCalculatorInput("%")
+        assertEquals("0.5", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `square root works correctly`() {
+        viewModel.onCalculatorInput("9")
+        viewModel.onCalculatorInput("√")
+        assertEquals("3.0", viewModel.calculatorState.display)
+    }
+
+    @Test
+    fun `memory functions work correctly`() {
+        viewModel.onCalculatorInput("5")
+        viewModel.onCalculatorInput("M+")
+        viewModel.onCalculatorInput("AC")
+        viewModel.onCalculatorInput("MR")
+        assertEquals("5.0", viewModel.calculatorState.display)
+        viewModel.onCalculatorInput("3")
+        viewModel.onCalculatorInput("M-")
+        viewModel.onCalculatorInput("AC")
+        viewModel.onCalculatorInput("MR")
+        assertEquals("2.0", viewModel.calculatorState.display)
+        viewModel.onCalculatorInput("MC")
+        viewModel.onCalculatorInput("AC")
+        viewModel.onCalculatorInput("MR")
+        assertEquals("0.0", viewModel.calculatorState.display)
+    }
+}

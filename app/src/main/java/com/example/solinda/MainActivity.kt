@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels()
     private lateinit var gameView: GameView
+    private lateinit var calculatorView: CalculatorView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +35,17 @@ class MainActivity : ComponentActivity() {
 
         gameView = GameView(this, viewModel)
         frameLayout.addView(gameView)
+
+        calculatorView = CalculatorView(this, viewModel)
+        frameLayout.addView(calculatorView)
+
+        if (viewModel.gameType == GameType.CALCULATOR) {
+            gameView.visibility = View.GONE
+            calculatorView.visibility = View.VISIBLE
+        } else {
+            gameView.visibility = View.VISIBLE
+            calculatorView.visibility = View.GONE
+        }
 
         val newGameButton = Button(this).apply {
             text = "New Game"
@@ -172,8 +184,21 @@ class MainActivity : ComponentActivity() {
             val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: viewModel.rightMargin
             val newRevealFactor = revealFactorInput.text.toString().toFloatOrNull() ?: viewModel.tableauCardRevealFactor
 
+            val gameSettingsChanged = viewModel.gameType != selectedGameType ||
+                    viewModel.dealCount != selectedDealCount ||
+                    viewModel.leftMargin != newLeftMargin ||
+                    viewModel.rightMargin != newRightMargin ||
+                    viewModel.tableauCardRevealFactor != newRevealFactor
 
-            if (viewModel.gameType != selectedGameType || viewModel.dealCount != selectedDealCount || viewModel.leftMargin != newLeftMargin || viewModel.rightMargin != newRightMargin || viewModel.tableauCardRevealFactor != newRevealFactor) {
+            if (selectedGameType == GameType.CALCULATOR) {
+                // Switch to calculator view
+                calculatorView.visibility = View.VISIBLE
+                gameView.visibility = View.GONE
+                viewModel.gameType = selectedGameType
+            } else if (gameSettingsChanged) {
+                // Switch to game view and apply settings
+                calculatorView.visibility = View.GONE
+                gameView.visibility = View.VISIBLE
                 viewModel.leftMargin = newLeftMargin
                 viewModel.rightMargin = newRightMargin
                 viewModel.tableauCardRevealFactor = newRevealFactor
