@@ -132,6 +132,26 @@ class GameViewModel : ViewModel() {
         return gameRules.canPlaceOnTableau(stack, toPile, freeCells, tableau)
     }
 
+    fun findValidSubStack(pile: Pile, cardIndex: Int): MutableList<Card> {
+        val originalStack = pile.cards.subList(cardIndex, pile.cards.size)
+
+        // Check if the original stack is valid
+        if (gameRules.isValidTableauStack(originalStack)) {
+            return originalStack.toMutableList()
+        }
+
+        // If not, find the first valid sub-stack from the bottom up
+        for (i in (cardIndex + 1) until pile.cards.size) {
+            val subStack = pile.cards.subList(i, pile.cards.size)
+            if (gameRules.isValidTableauStack(subStack)) {
+                return subStack.toMutableList()
+            }
+        }
+
+        // If no valid sub-stack is found, return the last card
+        return mutableListOf(pile.cards.last())
+    }
+
     fun isGameWinnable(): Boolean {
         return gameRules.isGameWinnable(stock, waste, tableau, freeCells)
     }

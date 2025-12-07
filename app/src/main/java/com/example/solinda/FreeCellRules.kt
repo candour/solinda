@@ -89,6 +89,17 @@ class FreeCellRules : GameRules {
         return freeCell.isEmpty() && stack.size == 1
     }
 
+    override fun isValidTableauStack(stack: List<Card>): Boolean {
+        if (stack.isEmpty()) return false
+        for (i in 0 until stack.size - 1) {
+            val top = stack[i]
+            val bottom = stack[i+1]
+            if (top.color == bottom.color || top.rank != bottom.rank + 1) {
+                return false
+            }
+        }
+        return true
+    }
 
     override fun revealIfNeeded(pile: Pile) {
         // Not applicable to FreeCell, all cards are dealt face up
