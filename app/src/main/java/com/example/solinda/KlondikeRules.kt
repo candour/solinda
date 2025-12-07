@@ -80,6 +80,18 @@ class KlondikeRules : GameRules {
         return false
     }
 
+    override fun isValidTableauStack(stack: List<Card>): Boolean {
+        if (stack.isEmpty()) return false
+        for (i in 0 until stack.size - 1) {
+            val top = stack[i]
+            val bottom = stack[i+1]
+            if (top.color == bottom.color || top.rank != bottom.rank + 1) {
+                return false
+            }
+        }
+        return true
+    }
+
     override fun revealIfNeeded(pile: Pile) {
         if (pile.type == PileType.TABLEAU && pile.topCard()?.faceUp == false) {
             pile.topCard()?.faceUp = true

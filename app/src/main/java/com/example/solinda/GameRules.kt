@@ -19,6 +19,7 @@ interface GameRules {
     fun canPlaceOnFoundation(card: Card, foundation: Pile): Boolean
     fun canPlaceOnTableau(stack: List<Card>, toPile: Pile, freeCells: List<Pile>, tableau: List<Pile>): Boolean
     fun canPlaceOnFreeCell(stack: List<Card>, freeCell: Pile): Boolean
+    fun isValidTableauStack(stack: List<Card>): Boolean
     fun revealIfNeeded(pile: Pile)
     fun checkWin(foundations: List<Pile>): Boolean
     fun isGameWinnable(

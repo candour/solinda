@@ -131,4 +131,48 @@ class GameViewModelTest {
         viewModel.autoMoveToFoundation()
         assertEquals(aceOfSpades, viewModel.foundations[0].topCard())
     }
+
+    @Test
+    fun `findValidSubStack returns full stack for valid selection`() {
+        val pile = Pile(PileType.TABLEAU)
+        pile.addCard(Card(Suit.SPADES, 5))
+        pile.addCard(Card(Suit.HEARTS, 4))
+        pile.addCard(Card(Suit.CLUBS, 3))
+        val result = viewModel.findValidSubStack(pile, 0)
+        assertEquals(3, result.size)
+    }
+
+    @Test
+    fun `findValidSubStack returns valid sub-stack for invalid selection`() {
+        val pile = Pile(PileType.TABLEAU)
+        pile.addCard(Card(Suit.SPADES, 10))
+        pile.addCard(Card(Suit.HEARTS, 5))
+        pile.addCard(Card(Suit.CLUBS, 4))
+        val result = viewModel.findValidSubStack(pile, 0)
+        assertEquals(2, result.size)
+        assertEquals(5, result.first().rank)
+    }
+
+    @Test
+    fun `findValidSubStack returns single card when no valid sub-stack exists`() {
+        val pile = Pile(PileType.TABLEAU)
+        pile.addCard(Card(Suit.SPADES, 10))
+        pile.addCard(Card(Suit.HEARTS, 8))
+        pile.addCard(Card(Suit.CLUBS, 5))
+        val result = viewModel.findValidSubStack(pile, 0)
+        assertEquals(1, result.size)
+        assertEquals(5, result.first().rank)
+    }
+
+    @Test
+    fun `findValidSubStack works for FreeCell`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        val pile = Pile(PileType.TABLEAU)
+        pile.addCard(Card(Suit.SPADES, 10))
+        pile.addCard(Card(Suit.HEARTS, 5))
+        pile.addCard(Card(Suit.CLUBS, 4))
+        val result = viewModel.findValidSubStack(pile, 0)
+        assertEquals(2, result.size)
+        assertEquals(5, result.first().rank)
+    }
 }

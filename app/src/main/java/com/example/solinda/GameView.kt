@@ -339,7 +339,7 @@ class GameView @JvmOverloads constructor(
 
                                         if (y in cardTop..tappableBottom) {
                                             potentialDragPile = pile
-                                            potentialDragStack = cards.subList(i, cards.size).toMutableList()
+                                            potentialDragStack = viewModel.findValidSubStack(pile, i)
                                             return true
                                         }
                                     }
