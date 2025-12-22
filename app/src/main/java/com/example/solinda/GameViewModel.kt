@@ -18,6 +18,8 @@ class GameViewModel : ViewModel() {
     var dealCount: Int = 1
     var leftMargin: Int = 20
     var rightMargin: Int = 20
+    var leftMarginLandscape: Int = 20
+    var rightMarginLandscape: Int = 20
     var tableauCardRevealFactor: Float = 0.3f
 
     var calculatorState = CalculatorState()
@@ -212,6 +214,8 @@ class GameViewModel : ViewModel() {
             gameType = gameType,
             leftMargin = leftMargin,
             rightMargin = rightMargin,
+            leftMarginLandscape = leftMarginLandscape,
+            rightMarginLandscape = rightMarginLandscape,
             tableauCardRevealFactor = tableauCardRevealFactor
         )
         val json = Gson().toJson(gameState)
@@ -232,6 +236,8 @@ class GameViewModel : ViewModel() {
             dealCount = gameState.dealCount
             leftMargin = gameState.leftMargin
             rightMargin = gameState.rightMargin
+            leftMarginLandscape = gameState.leftMarginLandscape
+            rightMarginLandscape = gameState.rightMarginLandscape
             tableauCardRevealFactor = gameState.tableauCardRevealFactor
         } else {
             initializeGameType(GameType.KLONDIKE)

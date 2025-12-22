@@ -10,6 +10,8 @@ data class GameState(
     val gameType: GameType,
     val leftMargin: Int = 20,
     val rightMargin: Int = 20,
+    val leftMarginLandscape: Int = 20,
+    val rightMarginLandscape: Int = 20,
     val tableauCardRevealFactor: Float = 0.3f
 )
 
