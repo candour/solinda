@@ -80,16 +80,14 @@ class MainActivity : ComponentActivity() {
         }
         frameLayout.addView(optionsButton)
 
-        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            optionsButton.visibility = View.GONE
-        }
-
         setContentView(frameLayout)
     }
 
     private fun showOptionsDialog() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Options")
+
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -140,7 +138,7 @@ class MainActivity : ComponentActivity() {
         leftMarginLayout.addView(leftMarginLabel)
         val leftMarginInput = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            setText(viewModel.leftMargin.toString())
+            setText(if (isLandscape) viewModel.leftMarginLandscape.toString() else viewModel.leftMargin.toString())
         }
         leftMarginLayout.addView(leftMarginInput)
         layout.addView(leftMarginLayout)
@@ -155,7 +153,7 @@ class MainActivity : ComponentActivity() {
         rightMarginLayout.addView(rightMarginLabel)
         val rightMarginInput = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            setText(viewModel.rightMargin.toString())
+            setText(if (isLandscape) viewModel.rightMarginLandscape.toString() else viewModel.rightMargin.toString())
         }
         rightMarginLayout.addView(rightMarginInput)
         layout.addView(rightMarginLayout)
@@ -180,14 +178,19 @@ class MainActivity : ComponentActivity() {
         builder.setPositiveButton("Save") { dialog, _ ->
             val selectedGameType = GameType.entries[gameTypeSpinner.selectedItemPosition]
             val selectedDealCount = radioGroup.checkedRadioButtonId
-            val newLeftMargin = leftMarginInput.text.toString().toIntOrNull() ?: viewModel.leftMargin
-            val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: viewModel.rightMargin
+            val newLeftMargin = leftMarginInput.text.toString().toIntOrNull() ?: if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin
+            val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin
             val newRevealFactor = revealFactorInput.text.toString().toFloatOrNull() ?: viewModel.tableauCardRevealFactor
+
+            val marginsChanged = if (isLandscape) {
+                viewModel.leftMarginLandscape != newLeftMargin || viewModel.rightMarginLandscape != newRightMargin
+            } else {
+                viewModel.leftMargin != newLeftMargin || viewModel.rightMargin != newRightMargin
+            }
 
             val gameSettingsChanged = viewModel.gameType != selectedGameType ||
                     viewModel.dealCount != selectedDealCount ||
-                    viewModel.leftMargin != newLeftMargin ||
-                    viewModel.rightMargin != newRightMargin ||
+                    marginsChanged ||
                     viewModel.tableauCardRevealFactor != newRevealFactor
 
             if (selectedGameType == GameType.CALCULATOR) {
@@ -199,8 +202,13 @@ class MainActivity : ComponentActivity() {
                 // Switch to game view and apply settings
                 calculatorView.visibility = View.GONE
                 gameView.visibility = View.VISIBLE
-                viewModel.leftMargin = newLeftMargin
-                viewModel.rightMargin = newRightMargin
+                if (isLandscape) {
+                    viewModel.leftMarginLandscape = newLeftMargin
+                    viewModel.rightMarginLandscape = newRightMargin
+                } else {
+                    viewModel.leftMargin = newLeftMargin
+                    viewModel.rightMargin = newRightMargin
+                }
                 viewModel.tableauCardRevealFactor = newRevealFactor
                 viewModel.resetGame(selectedGameType, selectedDealCount)
                 gameView.invalidate()

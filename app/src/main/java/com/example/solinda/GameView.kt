@@ -50,8 +50,8 @@ class GameView @JvmOverloads constructor(
     private fun calculateCardLayout(numPiles: Int) {
         if (width == 0 || height == 0 || numPiles == 0) return
 
-        val leftMarginPx = dpToPx(viewModel.leftMargin)
-        val rightMarginPx = dpToPx(viewModel.rightMargin)
+        val leftMarginPx = dpToPx(if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin)
+        val rightMarginPx = dpToPx(if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin)
 
         val totalSpacing = (numPiles - 1) * INTER_CARD_SPACING
         val totalMargin = leftMarginPx + rightMarginPx
@@ -72,8 +72,6 @@ class GameView @JvmOverloads constructor(
             calculatedCardHeight = calculatedCardWidth * 1.4f // A more standard card aspect ratio
         }
     }
-
-    private val tableauStartX get() = dpToPx(viewModel.leftMargin)
 
     // Drag and tap state
     private var dragStack: MutableList<Card>? = null
@@ -466,15 +464,16 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun getPileX(pile: Pile): Float {
-        val leftMarginPx = dpToPx(viewModel.leftMargin)
-        val rightMarginPx = dpToPx(viewModel.rightMargin)
+        val leftMarginPx = dpToPx(if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin)
+        val rightMarginPx = dpToPx(if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin)
+
         val topLeftX =  when (pile.type) {
             PileType.STOCK -> leftMarginPx
             PileType.WASTE -> leftMarginPx + calculatedCardWidth + INTER_CARD_SPACING
             PileType.FOUNDATION -> {
                 if (viewModel.gameType == GameType.FREECELL) {
                     val tableauIndex = 4 + viewModel.foundations.indexOf(pile)
-                    tableauStartX + tableauIndex * (calculatedCardWidth + INTER_CARD_SPACING)
+                    leftMarginPx + tableauIndex * (calculatedCardWidth + INTER_CARD_SPACING)
                 } else {
                     val foundationCount = viewModel.foundations.size
                     val startX = width - (foundationCount * (calculatedCardWidth + INTER_CARD_SPACING)) - rightMarginPx
@@ -482,7 +481,7 @@ class GameView @JvmOverloads constructor(
                 }
             }
 
-            PileType.TABLEAU -> tableauStartX + viewModel.tableau.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
+            PileType.TABLEAU -> leftMarginPx + viewModel.tableau.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
             PileType.FREE_CELL -> leftMarginPx + viewModel.freeCells.indexOf(pile) * (calculatedCardWidth + INTER_CARD_SPACING)
         }
         return topLeftX + calculatedCardWidth / 2f
