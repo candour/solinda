@@ -89,9 +89,30 @@ class MainActivity : ComponentActivity() {
 
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val mainLayout = LinearLayout(this).apply {
+            orientation = if (isLandscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
             setPadding(100, 50, 100, 50)
+        }
+
+        val leftColumn: LinearLayout
+        val rightColumn: LinearLayout
+
+        if (isLandscape) {
+            leftColumn = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setPadding(0, 0, 50, 0)
+            }
+            rightColumn = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setPadding(50, 0, 0, 0)
+            }
+            mainLayout.addView(leftColumn)
+            mainLayout.addView(rightColumn)
+        } else {
+            leftColumn = mainLayout
+            rightColumn = mainLayout
         }
 
         // Game Type Spinner
@@ -99,7 +120,7 @@ class MainActivity : ComponentActivity() {
             text = "Game Type"
             setPadding(0, 0, 0, 16)
         }
-        layout.addView(gameTypeLabel)
+        leftColumn.addView(gameTypeLabel)
 
         val gameTypeSpinner = Spinner(this)
         val gameTypes = GameType.entries.map { it.name.lowercase().replaceFirstChar { char -> char.uppercase() } }
@@ -107,7 +128,7 @@ class MainActivity : ComponentActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         gameTypeSpinner.adapter = adapter
         gameTypeSpinner.setSelection(viewModel.gameType.ordinal)
-        layout.addView(gameTypeSpinner)
+        leftColumn.addView(gameTypeSpinner)
 
         // Deal Count Radio Group
         val radioGroup = RadioGroup(this).apply {
@@ -127,12 +148,12 @@ class MainActivity : ComponentActivity() {
         }
         radioGroup.addView(deal3)
         radioGroup.check(viewModel.dealCount)
-        layout.addView(radioGroup)
+        leftColumn.addView(radioGroup)
 
         // Left Margin
         val leftMarginLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 50, 0, 0)
+            setPadding(0, if (isLandscape) 0 else 50, 0, 0)
         }
         val leftMarginLabel = TextView(this).apply { text = "Left Margin (dp)" }
         leftMarginLayout.addView(leftMarginLabel)
@@ -141,8 +162,7 @@ class MainActivity : ComponentActivity() {
             setText(if (isLandscape) viewModel.leftMarginLandscape.toString() else viewModel.leftMargin.toString())
         }
         leftMarginLayout.addView(leftMarginInput)
-        layout.addView(leftMarginLayout)
-
+        rightColumn.addView(leftMarginLayout)
 
         // Right Margin
         val rightMarginLayout = LinearLayout(this).apply {
@@ -156,7 +176,7 @@ class MainActivity : ComponentActivity() {
             setText(if (isLandscape) viewModel.rightMarginLandscape.toString() else viewModel.rightMargin.toString())
         }
         rightMarginLayout.addView(rightMarginInput)
-        layout.addView(rightMarginLayout)
+        rightColumn.addView(rightMarginLayout)
 
         // Tableau Card Reveal Factor
         val revealFactorLayout = LinearLayout(this).apply {
@@ -170,10 +190,9 @@ class MainActivity : ComponentActivity() {
             setText(viewModel.tableauCardRevealFactor.toString())
         }
         revealFactorLayout.addView(revealFactorInput)
-        layout.addView(revealFactorLayout)
+        rightColumn.addView(revealFactorLayout)
 
-
-        builder.setView(layout)
+        builder.setView(mainLayout)
 
         builder.setPositiveButton("Save") { dialog, _ ->
             val selectedGameType = GameType.entries[gameTypeSpinner.selectedItemPosition]
