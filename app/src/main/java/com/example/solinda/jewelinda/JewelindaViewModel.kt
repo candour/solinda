@@ -3,10 +3,17 @@ package com.example.solinda.jewelinda
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+sealed class JewelindaEvent {
+    data class GemCleared(val x: Int, val y: Int, val type: GemType) : JewelindaEvent()
+}
 
 class JewelindaViewModel : ViewModel() {
     private val _board = MutableStateFlow(GameBoard())
@@ -17,6 +24,9 @@ class JewelindaViewModel : ViewModel() {
 
     private val _score = MutableStateFlow(0)
     val score: StateFlow<Int> = _score.asStateFlow()
+
+    private val _events = MutableSharedFlow<JewelindaEvent>()
+    val events: SharedFlow<JewelindaEvent> = _events.asSharedFlow()
 
     init {
         newGame()
@@ -61,6 +71,13 @@ class JewelindaViewModel : ViewModel() {
         if (boardCopy.hasAnyMatch()) {
             var multiplier = 1
             while (boardCopy.hasAnyMatch()) {
+                val matches = boardCopy.findAllMatches()
+                matches.forEach { (x, y) ->
+                    boardCopy.getGem(x, y)?.let { gem ->
+                        _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
+                    }
+                }
+
                 val clearedCount = boardCopy.findAndRemoveMatches()
                 _score.value += clearedCount * 50 * multiplier
                 _board.value = boardCopy.copy()
