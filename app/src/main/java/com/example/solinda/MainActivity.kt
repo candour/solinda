@@ -18,11 +18,16 @@ import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.ui.platform.ComposeView
+import com.example.solinda.jewelinda.JewelindaViewModel
+import com.example.solinda.jewelinda.ui.JewelindaScreen
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels()
+    private val jewelindaViewModel: JewelindaViewModel by viewModels()
     private lateinit var gameView: GameView
+    private lateinit var jewelindaComposeView: ComposeView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +40,13 @@ class MainActivity : ComponentActivity() {
         gameView = GameView(this, viewModel)
         frameLayout.addView(gameView)
 
+        jewelindaComposeView = ComposeView(this).apply {
+            setContent {
+                JewelindaScreen(viewModel = jewelindaViewModel)
+            }
+        }
+        frameLayout.addView(jewelindaComposeView)
+
         val newGameButton = Button(this).apply {
             text = "New Game"
             layoutParams = FrameLayout.LayoutParams(
@@ -46,8 +58,12 @@ class MainActivity : ComponentActivity() {
                 marginEnd = 32
             }
             setOnClickListener {
-                viewModel.newGame()
-                gameView.invalidate() // Redraw the view
+                if (viewModel.gameType == GameType.JEWELINDA) {
+                    jewelindaViewModel.newGame()
+                } else {
+                    viewModel.newGame()
+                    gameView.invalidate() // Redraw the view
+                }
             }
         }
         frameLayout.addView(newGameButton)
@@ -69,6 +85,17 @@ class MainActivity : ComponentActivity() {
         frameLayout.addView(optionsButton)
 
         setContentView(frameLayout)
+        updateGameVisibility()
+    }
+
+    private fun updateGameVisibility() {
+        if (viewModel.gameType == GameType.JEWELINDA) {
+            gameView.visibility = View.GONE
+            jewelindaComposeView.visibility = View.VISIBLE
+        } else {
+            gameView.visibility = View.VISIBLE
+            jewelindaComposeView.visibility = View.GONE
+        }
     }
 
     private fun showOptionsDialog() {
@@ -211,6 +238,7 @@ class MainActivity : ComponentActivity() {
                 }
                 viewModel.tableauCardRevealFactor = newRevealFactor
                 viewModel.resetGame(selectedGameType, selectedDealCount)
+                updateGameVisibility()
                 gameView.invalidate()
             }
             dialog.dismiss()

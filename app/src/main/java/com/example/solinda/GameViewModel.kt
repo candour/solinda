@@ -31,6 +31,7 @@ class GameViewModel : ViewModel() {
         gameRules = when (gameType) {
             GameType.KLONDIKE -> KlondikeRules()
             GameType.FREECELL -> FreeCellRules()
+            GameType.JEWELINDA -> JewelindaRules()
         }
         stock = MutableList(gameRules.stockPilesCount) { Pile(PileType.STOCK) }
         waste = MutableList(gameRules.wastePilesCount) { Pile(PileType.WASTE) }
