@@ -10,11 +10,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.solinda.jewelinda.JewelindaViewModel
+import com.example.solinda.jewelinda.ParticleViewModel
 
 @Composable
 fun JewelindaScreen(viewModel: JewelindaViewModel) {
     val score by viewModel.score.collectAsState()
+    val particleViewModel: ParticleViewModel = viewModel()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
@@ -22,6 +25,6 @@ fun JewelindaScreen(viewModel: JewelindaViewModel) {
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(16.dp)
         )
-        GameGrid(viewModel = viewModel)
+        GameGrid(viewModel = viewModel, particleViewModel = particleViewModel)
     }
 }

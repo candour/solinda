@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.solinda.jewelinda.Gem
 import com.example.solinda.jewelinda.GemType
+import com.example.solinda.jewelinda.getGemColor
 import kotlin.math.roundToInt
 
 @Composable
@@ -41,15 +42,4 @@ fun GemComponent(gem: Gem, size: Dp, modifier: Modifier = Modifier) {
             .padding(4.dp)
             .background(color = getGemColor(gem.type), shape = CircleShape)
     )
-}
-
-private fun getGemColor(type: GemType): Color {
-    return when (type) {
-        GemType.RED -> Color.Red
-        GemType.BLUE -> Color.Blue
-        GemType.GREEN -> Color.Green
-        GemType.YELLOW -> Color.Yellow
-        GemType.PURPLE -> Color.Magenta
-        GemType.ORANGE -> Color(0xFFFFA500)
-    }
 }

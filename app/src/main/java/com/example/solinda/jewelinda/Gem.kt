@@ -1,5 +1,6 @@
 package com.example.solinda.jewelinda
 
+import androidx.compose.ui.graphics.Color
 import java.util.UUID
 
 enum class GemType {
@@ -12,3 +13,14 @@ data class Gem(
     val posX: Int,
     val posY: Int
 )
+
+fun getGemColor(type: GemType): Color {
+    return when (type) {
+        GemType.RED -> Color.Red
+        GemType.BLUE -> Color.Blue
+        GemType.GREEN -> Color.Green
+        GemType.YELLOW -> Color.Yellow
+        GemType.PURPLE -> Color.Magenta
+        GemType.ORANGE -> Color(0xFFFFA500)
+    }
+}
