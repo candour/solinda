@@ -23,7 +23,6 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels()
     private lateinit var gameView: GameView
-    private lateinit var calculatorView: CalculatorView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,17 +34,6 @@ class MainActivity : ComponentActivity() {
 
         gameView = GameView(this, viewModel)
         frameLayout.addView(gameView)
-
-        calculatorView = CalculatorView(this, viewModel)
-        frameLayout.addView(calculatorView)
-
-        if (viewModel.gameType == GameType.CALCULATOR) {
-            gameView.visibility = View.GONE
-            calculatorView.visibility = View.VISIBLE
-        } else {
-            gameView.visibility = View.VISIBLE
-            calculatorView.visibility = View.GONE
-        }
 
         val newGameButton = Button(this).apply {
             text = "New Game"
@@ -212,15 +200,8 @@ class MainActivity : ComponentActivity() {
                     marginsChanged ||
                     viewModel.tableauCardRevealFactor != newRevealFactor
 
-            if (selectedGameType == GameType.CALCULATOR) {
-                // Switch to calculator view
-                calculatorView.visibility = View.VISIBLE
-                gameView.visibility = View.GONE
-                viewModel.gameType = selectedGameType
-            } else if (gameSettingsChanged) {
-                // Switch to game view and apply settings
-                calculatorView.visibility = View.GONE
-                gameView.visibility = View.VISIBLE
+            if (gameSettingsChanged) {
+                // Apply settings
                 if (isLandscape) {
                     viewModel.leftMarginLandscape = newLeftMargin
                     viewModel.rightMarginLandscape = newRightMargin

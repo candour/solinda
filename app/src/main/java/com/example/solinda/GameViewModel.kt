@@ -22,22 +22,15 @@ class GameViewModel : ViewModel() {
     var rightMarginLandscape: Int = 20
     var tableauCardRevealFactor: Float = 0.3f
 
-    var calculatorState = CalculatorState()
-
     init {
         initializeGameType(gameType)
     }
 
     fun initializeGameType(newGameType: GameType) {
-        if (newGameType == GameType.CALCULATOR) {
-            gameType = newGameType
-            return
-        }
         gameType = newGameType
         gameRules = when (gameType) {
             GameType.KLONDIKE -> KlondikeRules()
             GameType.FREECELL -> FreeCellRules()
-            GameType.CALCULATOR -> throw IllegalStateException("Calculator does not have game rules")
         }
         stock = MutableList(gameRules.stockPilesCount) { Pile(PileType.STOCK) }
         waste = MutableList(gameRules.wastePilesCount) { Pile(PileType.WASTE) }
@@ -51,7 +44,7 @@ class GameViewModel : ViewModel() {
         dealCount = newDealCount
         if (gameType != newGameType) {
             initializeGameType(newGameType)
-        } else if (newGameType != GameType.CALCULATOR) {
+        } else {
             newGame()
         }
     }
@@ -220,143 +213,31 @@ class GameViewModel : ViewModel() {
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
-        saveCalculatorState(prefs)
     }
 
     fun loadGame(prefs: SharedPreferences) {
         val json = prefs.getString("game_state", null)
         if (json != null) {
-            val gameState = Gson().fromJson(json, GameState::class.java)
-            initializeGameType(gameState.gameType)
-            stock = gameState.stock.map { Pile(it) }.toMutableList()
-            waste = gameState.waste.map { Pile(it) }.toMutableList()
-            foundations = gameState.foundations.map { Pile(it) }.toMutableList()
-            tableau = gameState.tableau.map { Pile(it) }.toMutableList()
-            freeCells = gameState.freeCells.map { Pile(it) }.toMutableList()
-            dealCount = gameState.dealCount
-            leftMargin = gameState.leftMargin
-            rightMargin = gameState.rightMargin
-            leftMarginLandscape = gameState.leftMarginLandscape
-            rightMarginLandscape = gameState.rightMarginLandscape
-            tableauCardRevealFactor = gameState.tableauCardRevealFactor
+            try {
+                val gameState = Gson().fromJson(json, GameState::class.java)
+                initializeGameType(gameState.gameType)
+                stock = gameState.stock.map { Pile(it) }.toMutableList()
+                waste = gameState.waste.map { Pile(it) }.toMutableList()
+                foundations = gameState.foundations.map { Pile(it) }.toMutableList()
+                tableau = gameState.tableau.map { Pile(it) }.toMutableList()
+                freeCells = gameState.freeCells.map { Pile(it) }.toMutableList()
+                dealCount = gameState.dealCount
+                leftMargin = gameState.leftMargin
+                rightMargin = gameState.rightMargin
+                leftMarginLandscape = gameState.leftMarginLandscape
+                rightMarginLandscape = gameState.rightMarginLandscape
+                tableauCardRevealFactor = gameState.tableauCardRevealFactor
+            } catch (e: Exception) {
+                // Handle cases where the saved game state is invalid (e.g. old CALCULATOR game type)
+                initializeGameType(GameType.KLONDIKE)
+            }
         } else {
             initializeGameType(GameType.KLONDIKE)
         }
-        loadCalculatorState(prefs)
-    }
-
-    private fun saveCalculatorState(prefs: SharedPreferences) {
-        val json = Gson().toJson(calculatorState)
-        prefs.edit().putString("calculator_state", json).apply()
-    }
-
-    private fun loadCalculatorState(prefs: SharedPreferences) {
-        val json = prefs.getString("calculator_state", null)
-        if (json != null) {
-            calculatorState = Gson().fromJson(json, CalculatorState::class.java)
-        }
-    }
-
-    fun onCalculatorInput(button: String) {
-        when (button) {
-            in "0".."9" -> handleDigit(button)
-            "." -> handleDecimal()
-            in listOf("+", "-", "*", "/") -> handleOperator(button)
-            "=" -> calculateResult()
-            "C" -> clearEntry()
-            "AC" -> allClear()
-            "%" -> calculatePercentage()
-            "√" -> calculateSquareRoot()
-            "M+" -> memoryAdd()
-            "M-" -> memorySubtract()
-            "MR" -> memoryRecall()
-            "MC" -> memoryClear()
-        }
-    }
-
-    private fun handleDigit(digit: String) {
-        val currentDisplay = calculatorState.display
-        if (currentDisplay == "0" || calculatorState.overwriteDisplay) {
-            calculatorState = calculatorState.copy(display = digit, overwriteDisplay = false)
-        } else {
-            calculatorState = calculatorState.copy(display = currentDisplay + digit)
-        }
-    }
-
-    private fun handleDecimal() {
-        if (!calculatorState.display.contains(".")) {
-            calculatorState = calculatorState.copy(display = calculatorState.display + ".")
-        }
-    }
-
-    private fun handleOperator(operator: String) {
-        if (calculatorState.currentOperator != null && !calculatorState.overwriteDisplay) {
-            calculateResult()
-        }
-        calculatorState = calculatorState.copy(
-            previousValue = calculatorState.display.toDouble(),
-            currentOperator = operator,
-            overwriteDisplay = true
-        )
-    }
-
-    private fun calculateResult() {
-        val operator = calculatorState.currentOperator ?: return
-        val currentValue = calculatorState.display.toDouble()
-        val previousValue = calculatorState.previousValue
-        val result = when (operator) {
-            "+" -> previousValue + currentValue
-            "-" -> previousValue - currentValue
-            "*" -> previousValue * currentValue
-            "/" -> previousValue / currentValue
-            else -> currentValue
-        }
-        calculatorState = calculatorState.copy(
-            display = result.toString(),
-            currentOperator = null,
-            overwriteDisplay = true
-        )
-    }
-
-    private fun clearEntry() {
-        calculatorState = calculatorState.copy(display = "0", overwriteDisplay = true)
-    }
-
-    private fun allClear() {
-        calculatorState = CalculatorState(memory = calculatorState.memory)
-    }
-
-    private fun calculatePercentage() {
-        val value = calculatorState.display.toDouble() / 100
-        calculatorState = calculatorState.copy(display = value.toString(), overwriteDisplay = true)
-    }
-
-    private fun calculateSquareRoot() {
-        val value = calculatorState.display.toDouble()
-        if (value >= 0) {
-            val result = kotlin.math.sqrt(value)
-            calculatorState = calculatorState.copy(display = result.toString(), overwriteDisplay = true)
-        }
-    }
-
-    private fun memoryAdd() {
-        val memory = calculatorState.memory + calculatorState.display.toDouble()
-        calculatorState = calculatorState.copy(memory = memory, overwriteDisplay = true)
-    }
-
-    private fun memorySubtract() {
-        val memory = calculatorState.memory - calculatorState.display.toDouble()
-        calculatorState = calculatorState.copy(memory = memory, overwriteDisplay = true)
-    }
-
-    private fun memoryRecall() {
-        calculatorState = calculatorState.copy(
-            display = calculatorState.memory.toString(),
-            overwriteDisplay = true
-        )
-    }
-
-    private fun memoryClear() {
-        calculatorState = calculatorState.copy(memory = 0.0)
     }
 }
