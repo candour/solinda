@@ -13,6 +13,17 @@ class GameBoard {
         this.grid = newGrid
     }
 
+    fun copy(): GameBoard {
+        val newBoard = GameBoard()
+        val newGrid = Array(HEIGHT) { y ->
+            Array(WIDTH) { x ->
+                grid[y][x]
+            }
+        }
+        newBoard.setGrid(newGrid)
+        return newBoard
+    }
+
     fun getGem(x: Int, y: Int): Gem? {
         if (x !in 0 until WIDTH || y !in 0 until HEIGHT) return null
         return grid[y][x]
@@ -115,5 +126,94 @@ class GameBoard {
         if (verticalCount >= 3) return true
 
         return false
+    }
+
+    fun swapGems(x1: Int, y1: Int, x2: Int, y2: Int) {
+        val gem1 = grid[y1][x1]
+        val gem2 = grid[y2][x2]
+
+        grid[y1][x1] = gem2?.copy(posX = x1, posY = y1)
+        grid[y2][x2] = gem1?.copy(posX = x2, posY = y2)
+    }
+
+    fun findAllMatches(): Set<Pair<Int, Int>> {
+        val matches = mutableSetOf<Pair<Int, Int>>()
+        // Horizontal
+        for (y in 0 until HEIGHT) {
+            var x = 0
+            while (x < WIDTH) {
+                val type = grid[y][x]?.type
+                if (type != null) {
+                    var count = 1
+                    while (x + count < WIDTH && grid[y][x + count]?.type == type) {
+                        count++
+                    }
+                    if (count >= 3) {
+                        for (i in 0 until count) {
+                            matches.add(Pair(x + i, y))
+                        }
+                    }
+                    x += count
+                } else {
+                    x++
+                }
+            }
+        }
+        // Vertical
+        for (x in 0 until WIDTH) {
+            var y = 0
+            while (y < HEIGHT) {
+                val type = grid[y][x]?.type
+                if (type != null) {
+                    var count = 1
+                    while (y + count < HEIGHT && grid[y + count][x]?.type == type) {
+                        count++
+                    }
+                    if (count >= 3) {
+                        for (i in 0 until count) {
+                            matches.add(Pair(x, y + i))
+                        }
+                    }
+                    y += count
+                } else {
+                    y++
+                }
+            }
+        }
+        return matches
+    }
+
+    fun findAndRemoveMatches(): Int {
+        val matches = findAllMatches()
+        if (matches.isEmpty()) return 0
+        for ((x, y) in matches) {
+            grid[y][x] = null
+        }
+        return matches.size
+    }
+
+    fun shiftGemsDown() {
+        for (x in 0 until WIDTH) {
+            var emptyRow = HEIGHT - 1
+            for (y in HEIGHT - 1 downTo 0) {
+                if (grid[y][x] != null) {
+                    if (y != emptyRow) {
+                        grid[emptyRow][x] = grid[y][x]?.copy(posX = x, posY = emptyRow)
+                        grid[y][x] = null
+                    }
+                    emptyRow--
+                }
+            }
+        }
+    }
+
+    fun refillBoard() {
+        for (x in 0 until WIDTH) {
+            for (y in 0 until HEIGHT) {
+                if (grid[y][x] == null) {
+                    grid[y][x] = Gem(type = GemType.entries.random(), posX = x, posY = y)
+                }
+            }
+        }
     }
 }
