@@ -29,6 +29,19 @@ class GameBoard {
         return grid[y][x]
     }
 
+    fun getGridFlattened(): List<Gem> {
+        return grid.flatten().filterNotNull()
+    }
+
+    fun loadGrid(gems: List<Gem>) {
+        grid = Array(HEIGHT) { arrayOfNulls<Gem>(WIDTH) }
+        gems.forEach { gem ->
+            if (gem.posX in 0 until WIDTH && gem.posY in 0 until HEIGHT) {
+                grid[gem.posY][gem.posX] = gem
+            }
+        }
+    }
+
     fun initBoard() {
         do {
             for (y in 0 until HEIGHT) {

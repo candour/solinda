@@ -199,7 +199,33 @@ class GameViewModel : ViewModel() {
     }
 
     fun saveGame(prefs: SharedPreferences) {
-        val gameState = GameState(
+        val json = prefs.getString("game_state", null)
+        val gson = Gson()
+        val existingGameState = if (json != null) {
+            try {
+                gson.fromJson(json, GameState::class.java)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+
+        val updatedGameState = existingGameState?.copy(
+            stock = stock.map { it.toPileState() },
+            waste = waste.map { it.toPileState() },
+            foundations = foundations.map { it.toPileState() },
+            tableau = tableau.map { it.toPileState() },
+            freeCells = freeCells.map { it.toPileState() },
+            dealCount = dealCount,
+            gameType = gameType,
+            leftMargin = leftMargin,
+            rightMargin = rightMargin,
+            leftMarginLandscape = leftMarginLandscape,
+            rightMarginLandscape = rightMarginLandscape,
+            tableauCardRevealFactor = tableauCardRevealFactor,
+            isHapticsEnabled = isHapticsEnabled
+        ) ?: GameState(
             stock = stock.map { it.toPileState() },
             waste = waste.map { it.toPileState() },
             foundations = foundations.map { it.toPileState() },
@@ -214,8 +240,8 @@ class GameViewModel : ViewModel() {
             tableauCardRevealFactor = tableauCardRevealFactor,
             isHapticsEnabled = isHapticsEnabled
         )
-        val json = Gson().toJson(gameState)
-        prefs.edit().putString("game_state", json).apply()
+
+        prefs.edit().putString("game_state", gson.toJson(updatedGameState)).apply()
     }
 
     fun loadGame(prefs: SharedPreferences) {
