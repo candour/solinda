@@ -49,7 +49,8 @@ fun GameOverOverlay(
 
             Text(
                 text = "Final Score: $score",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
