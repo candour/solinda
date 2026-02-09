@@ -216,4 +216,18 @@ class GameBoard {
             }
         }
     }
+
+    fun shuffleBoard() {
+        val allGems = grid.flatten().filterNotNull().toMutableList()
+        do {
+            allGems.shuffle()
+            var index = 0
+            for (y in 0 until HEIGHT) {
+                for (x in 0 until WIDTH) {
+                    val gem = allGems[index++]
+                    grid[y][x] = gem.copy(posX = x, posY = y)
+                }
+            }
+        } while (hasAnyMatch() || !hasPossibleMoves())
+    }
 }

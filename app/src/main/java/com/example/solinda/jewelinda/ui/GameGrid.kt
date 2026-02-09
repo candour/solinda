@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -99,7 +100,9 @@ fun GameGrid(viewModel: JewelindaViewModel, particleViewModel: ParticleViewModel
             for (y in 0 until GameBoard.HEIGHT) {
                 for (x in 0 until GameBoard.WIDTH) {
                     board.getGem(x, y)?.let { gem ->
-                        GemComponent(gem = gem, size = gemSize)
+                        key(gem.id) {
+                            GemComponent(gem = gem, size = gemSize)
+                        }
                     }
                 }
             }

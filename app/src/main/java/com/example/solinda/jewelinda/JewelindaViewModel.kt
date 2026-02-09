@@ -13,9 +13,16 @@ import kotlinx.coroutines.launch
 
 sealed class JewelindaEvent {
     data class GemCleared(val x: Int, val y: Int, val type: GemType) : JewelindaEvent()
+    data class MatchPerformed(val size: Int) : JewelindaEvent()
+    data object Shuffle : JewelindaEvent()
 }
 
 class JewelindaViewModel : ViewModel() {
+    companion object {
+        const val TARGET_SCORE = 1000
+        const val INITIAL_MOVES = 30
+    }
+
     private val _board = MutableStateFlow(GameBoard())
     val board: StateFlow<GameBoard> = _board.asStateFlow()
 
@@ -24,6 +31,9 @@ class JewelindaViewModel : ViewModel() {
 
     private val _score = MutableStateFlow(0)
     val score: StateFlow<Int> = _score.asStateFlow()
+
+    private val _movesRemaining = MutableStateFlow(INITIAL_MOVES)
+    val movesRemaining: StateFlow<Int> = _movesRemaining.asStateFlow()
 
     private val _events = MutableSharedFlow<JewelindaEvent>()
     val events: SharedFlow<JewelindaEvent> = _events.asSharedFlow()
@@ -37,6 +47,7 @@ class JewelindaViewModel : ViewModel() {
         newBoard.initBoard()
         _board.value = newBoard
         _score.value = 0
+        _movesRemaining.value = INITIAL_MOVES
     }
 
     fun onSwipe(x: Int, y: Int, direction: Direction) {
@@ -61,6 +72,7 @@ class JewelindaViewModel : ViewModel() {
     }
 
     private suspend fun processMove(row1: Int, col1: Int, row2: Int, col2: Int) {
+        if (_movesRemaining.value <= 0) return
         _isProcessing.value = true
 
         val boardCopy = _board.value.copy()
@@ -69,9 +81,11 @@ class JewelindaViewModel : ViewModel() {
         delay(300)
 
         if (boardCopy.hasAnyMatch()) {
+            _movesRemaining.value -= 1
             var multiplier = 1
             while (boardCopy.hasAnyMatch()) {
                 val matches = boardCopy.findAllMatches()
+                _events.emit(JewelindaEvent.MatchPerformed(matches.size))
                 matches.forEach { (x, y) ->
                     boardCopy.getGem(x, y)?.let { gem ->
                         _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
@@ -92,6 +106,15 @@ class JewelindaViewModel : ViewModel() {
                 delay(300)
 
                 multiplier *= 2
+            }
+
+            // Check if shuffle needed
+            if (!boardCopy.hasPossibleMoves()) {
+                delay(500)
+                boardCopy.shuffleBoard()
+                _events.emit(JewelindaEvent.Shuffle)
+                _board.value = boardCopy.copy()
+                delay(300)
             }
         } else {
             // Swap back
