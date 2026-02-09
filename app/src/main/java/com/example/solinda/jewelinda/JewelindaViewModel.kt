@@ -35,6 +35,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
+    private val _isGravityEnabled = MutableStateFlow(false)
+    val isGravityEnabled: StateFlow<Boolean> = _isGravityEnabled.asStateFlow()
+
     private val _score = MutableStateFlow(0)
     val score: StateFlow<Int> = _score.asStateFlow()
 
@@ -141,11 +144,12 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun processMove(row1: Int, col1: Int, row2: Int, col2: Int) {
         if (_movesRemaining.value <= 0) return
         _isProcessing.value = true
+        _isGravityEnabled.value = false
 
         val boardCopy = _board.value.copy()
         boardCopy.swapGems(col1, row1, col2, row2)
         _board.value = boardCopy
-        delay(300)
+        delay(600)
 
         if (boardCopy.hasAnyMatch()) {
             _movesRemaining.value -= 1
@@ -162,15 +166,20 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 val clearedCount = boardCopy.findAndRemoveMatches()
                 _score.value += clearedCount * 50 * multiplier
                 _board.value = boardCopy.copy()
-                delay(300)
+                delay(600)
 
+                _isGravityEnabled.value = true
                 boardCopy.shiftGemsDown()
                 _board.value = boardCopy.copy()
-                delay(300)
+                delay(600)
 
-                boardCopy.refillBoard()
+                boardCopy.refillBoard(fromTop = true)
                 _board.value = boardCopy.copy()
-                delay(300)
+                delay(100)
+
+                boardCopy.finalizeRefill()
+                _board.value = boardCopy.copy()
+                delay(600)
 
                 multiplier *= 2
             }
@@ -181,14 +190,14 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 boardCopy.shuffleBoard()
                 _events.emit(JewelindaEvent.Shuffle)
                 _board.value = boardCopy.copy()
-                delay(300)
+                delay(600)
             }
             saveGame()
         } else {
             // Swap back
             boardCopy.swapGems(col1, row1, col2, row2)
             _board.value = boardCopy.copy()
-            delay(300)
+            delay(600)
         }
 
         _isProcessing.value = false

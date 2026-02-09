@@ -31,6 +31,7 @@ import kotlin.math.abs
 fun GameGrid(viewModel: JewelindaViewModel, particleViewModel: ParticleViewModel) {
     val board by viewModel.board.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
+    val isGravityEnabled by viewModel.isGravityEnabled.collectAsState()
     val density = LocalDensity.current
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -101,7 +102,7 @@ fun GameGrid(viewModel: JewelindaViewModel, particleViewModel: ParticleViewModel
                 for (x in 0 until GameBoard.WIDTH) {
                     board.getGem(x, y)?.let { gem ->
                         key(gem.id) {
-                            GemComponent(gem = gem, size = gemSize)
+                            GemComponent(gem = gem, size = gemSize, isGravityEnabled = isGravityEnabled)
                         }
                     }
                 }

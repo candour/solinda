@@ -220,11 +220,23 @@ class GameBoard {
         }
     }
 
-    fun refillBoard() {
+    fun refillBoard(fromTop: Boolean = false) {
         for (x in 0 until WIDTH) {
             for (y in 0 until HEIGHT) {
                 if (grid[y][x] == null) {
-                    grid[y][x] = Gem(type = GemType.entries.random(), posX = x, posY = y)
+                    grid[y][x] = Gem(type = GemType.entries.random(), posX = x, posY = if (fromTop) -1 else y)
+                }
+            }
+        }
+    }
+
+    fun finalizeRefill() {
+        for (y in 0 until HEIGHT) {
+            for (x in 0 until WIDTH) {
+                grid[y][x]?.let { gem ->
+                    if (gem.posY == -1) {
+                        grid[y][x] = gem.copy(posY = y)
+                    }
                 }
             }
         }
