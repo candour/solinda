@@ -3,6 +3,7 @@ package com.example.solinda.jewelinda.ui
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,51 +38,58 @@ fun JewelindaScreen(viewModel: JewelindaViewModel, gameViewModel: GameViewModel)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Score: $score",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Target: ${JewelindaViewModel.TARGET_SCORE}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Score: $score",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Target: ${JewelindaViewModel.TARGET_SCORE}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "Moves",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "$moves",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Moves",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                    Text(
-                        text = "$moves",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    )
-                }
+                GameGrid(viewModel = viewModel, particleViewModel = particleViewModel)
             }
 
-            GameGrid(viewModel = viewModel, particleViewModel = particleViewModel)
-        }
-
-        if (moves <= 0) {
-            GameOverOverlay(
-                score = score,
-                targetScore = JewelindaViewModel.TARGET_SCORE,
-                onPlayAgain = { viewModel.newGame() }
-            )
+            if (moves <= 0) {
+                GameOverOverlay(
+                    score = score,
+                    targetScore = JewelindaViewModel.TARGET_SCORE,
+                    onPlayAgain = { viewModel.newGame() }
+                )
+            }
         }
     }
 }

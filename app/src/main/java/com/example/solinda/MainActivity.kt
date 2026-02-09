@@ -22,6 +22,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.compose.ui.platform.ComposeView
 import com.example.solinda.jewelinda.JewelindaViewModel
 import com.example.solinda.jewelinda.ui.JewelindaScreen
+import com.example.solinda.jewelinda.ui.JewelindaTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -43,7 +44,9 @@ class MainActivity : ComponentActivity() {
 
         jewelindaComposeView = ComposeView(this).apply {
             setContent {
-                JewelindaScreen(viewModel = jewelindaViewModel, gameViewModel = viewModel)
+                JewelindaTheme {
+                    JewelindaScreen(viewModel = jewelindaViewModel, gameViewModel = viewModel)
+                }
             }
         }
         frameLayout.addView(jewelindaComposeView)
