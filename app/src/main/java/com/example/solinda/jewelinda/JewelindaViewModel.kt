@@ -1,7 +1,13 @@
 package com.example.solinda.jewelinda
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.solinda.GameState
+import com.example.solinda.GameType
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +23,7 @@ sealed class JewelindaEvent {
     data object Shuffle : JewelindaEvent()
 }
 
-class JewelindaViewModel : ViewModel() {
+class JewelindaViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         const val TARGET_SCORE = 1000
         const val INITIAL_MOVES = 30
@@ -39,7 +45,67 @@ class JewelindaViewModel : ViewModel() {
     val events: SharedFlow<JewelindaEvent> = _events.asSharedFlow()
 
     init {
+        loadGame()
+    }
+
+    fun saveGame() {
+        val prefs = getApplication<Application>().getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
+        val json = prefs.getString("game_state", null)
+        val gson = Gson()
+        val gameState = if (json != null) {
+            try {
+                gson.fromJson(json, GameState::class.java)
+            } catch (e: Exception) {
+                createDefaultGameState()
+            }
+        } else {
+            createDefaultGameState()
+        }
+
+        val boardJson = gson.toJson(_board.value.getGridFlattened())
+        val updatedGameState = gameState.copy(
+            jewelindaBoardJson = boardJson,
+            jewelindaScore = _score.value,
+            jewelindaMoves = _movesRemaining.value
+        )
+
+        prefs.edit().putString("game_state", gson.toJson(updatedGameState)).apply()
+    }
+
+    fun loadGame() {
+        val prefs = getApplication<Application>().getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
+        val json = prefs.getString("game_state", null)
+        if (json != null) {
+            try {
+                val gson = Gson()
+                val gameState = gson.fromJson(json, GameState::class.java)
+                val boardJson = gameState.jewelindaBoardJson
+                if (boardJson != null) {
+                    val gemListType = object : TypeToken<List<Gem>>() {}.type
+                    val gems: List<Gem> = gson.fromJson(boardJson, gemListType)
+                    val loadedBoard = GameBoard()
+                    loadedBoard.loadGrid(gems)
+                    _board.value = loadedBoard
+                    _score.value = gameState.jewelindaScore
+                    _movesRemaining.value = gameState.jewelindaMoves
+                    return
+                }
+            } catch (e: Exception) {
+                // Fallback to newGame
+            }
+        }
         newGame()
+    }
+
+    private fun createDefaultGameState(): GameState {
+        return GameState(
+            stock = emptyList(),
+            waste = emptyList(),
+            foundations = emptyList(),
+            tableau = emptyList(),
+            freeCells = emptyList(),
+            gameType = GameType.JEWELINDA
+        )
     }
 
     fun newGame() {
@@ -48,6 +114,7 @@ class JewelindaViewModel : ViewModel() {
         _board.value = newBoard
         _score.value = 0
         _movesRemaining.value = INITIAL_MOVES
+        saveGame()
     }
 
     fun onSwipe(x: Int, y: Int, direction: Direction) {
@@ -116,6 +183,7 @@ class JewelindaViewModel : ViewModel() {
                 _board.value = boardCopy.copy()
                 delay(300)
             }
+            saveGame()
         } else {
             // Swap back
             boardCopy.swapGems(col1, row1, col2, row2)

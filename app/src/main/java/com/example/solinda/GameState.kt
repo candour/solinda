@@ -13,7 +13,10 @@ data class GameState(
     val leftMarginLandscape: Int = 20,
     val rightMarginLandscape: Int = 20,
     val tableauCardRevealFactor: Float = 0.3f,
-    val isHapticsEnabled: Boolean = true
+    val isHapticsEnabled: Boolean = true,
+    val jewelindaBoardJson: String? = null,
+    val jewelindaScore: Int = 0,
+    val jewelindaMoves: Int = 30
 )
 
 data class PileState(
