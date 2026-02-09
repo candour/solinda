@@ -230,6 +230,46 @@ class GameBoard {
         }
     }
 
+    fun refillAndPrepareFall() {
+        for (x in 0 until WIDTH) {
+            // 1. Shift existing gems down in grid, but keep their current posY
+            var emptyRow = HEIGHT - 1
+            for (y in HEIGHT - 1 downTo 0) {
+                if (grid[y][x] != null) {
+                    if (y != emptyRow) {
+                        val gem = grid[y][x]!!
+                        grid[emptyRow][x] = gem.copy(posX = x) // Keep posY as is
+                        grid[y][x] = null
+                    }
+                    emptyRow--
+                }
+            }
+
+            // 2. Fill empty slots with new gems, stacked above the board
+            var nextNewPosY = -1
+            // We fill from bottom-most empty row to top empty row
+            for (y in emptyRow downTo 0) {
+                grid[y][x] = Gem(
+                    type = GemType.entries.random(),
+                    posX = x,
+                    posY = nextNewPosY--
+                )
+            }
+        }
+    }
+
+    fun finalizeFall() {
+        for (y in 0 until HEIGHT) {
+            for (x in 0 until WIDTH) {
+                grid[y][x]?.let { gem ->
+                    if (gem.posY != y) {
+                        grid[y][x] = gem.copy(posY = y)
+                    }
+                }
+            }
+        }
+    }
+
     fun finalizeRefill() {
         for (y in 0 until HEIGHT) {
             for (x in 0 until WIDTH) {

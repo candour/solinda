@@ -169,15 +169,11 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 delay(600)
 
                 _isGravityEnabled.value = true
-                boardCopy.shiftGemsDown()
+                boardCopy.refillAndPrepareFall()
                 _board.value = boardCopy.copy()
-                delay(600)
+                delay(50)
 
-                boardCopy.refillBoard(fromTop = true)
-                _board.value = boardCopy.copy()
-                delay(100)
-
-                boardCopy.finalizeRefill()
+                boardCopy.finalizeFall()
                 _board.value = boardCopy.copy()
                 delay(600)
 

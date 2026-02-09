@@ -153,4 +153,72 @@ class GameBoardTest {
         assertEquals(gem2.id, board.getGem(0, 0)?.id)
         assertEquals(gem1.id, board.getGem(1, 0)?.id)
     }
+
+    @Test
+    fun testSimultaneousFallLogic() {
+        val board = GameBoard()
+        val grid = Array(GameBoard.HEIGHT) { arrayOfNulls<Gem>(GameBoard.WIDTH) }
+
+        // Setup a column (x=0) with some gems and gaps
+        // row 0: null (gap)
+        // row 1: Gem A (pos: 0, 1)
+        // row 2: null (gap)
+        // row 3: Gem B (pos: 0, 3)
+        // row 4-7: Gem C-F
+        val gemA = Gem(type = GemType.RED, posX = 0, posY = 1)
+        val gemB = Gem(type = GemType.BLUE, posX = 0, posY = 3)
+        grid[1][0] = gemA
+        grid[3][0] = gemB
+        for (y in 4 until GameBoard.HEIGHT) {
+            grid[y][0] = Gem(type = GemType.GREEN, posX = 0, posY = y)
+        }
+
+        board.setGrid(grid)
+
+        // 1. Prepare Fall
+        board.refillAndPrepareFall()
+
+        // After shift down:
+        // row 7: Gem F (no change)
+        // row 6: Gem E
+        // row 5: Gem D
+        // row 4: Gem C
+        // row 3: Gem B (was at row 3, but now it should be at row 7... wait)
+        // Let's re-calculate shiftDown:
+        // Total gems: 2 + 4 = 6 gems.
+        // They should occupy rows 2, 3, 4, 5, 6, 7.
+        // row 7: Gem F (was 7)
+        // row 6: Gem E (was 6)
+        // row 5: Gem D (was 5)
+        // row 4: Gem C (was 4)
+        // row 3: Gem B (was 3)
+        // row 2: Gem A (was 1)
+        // row 0, 1: null -> filled with New Gems N1, N2
+
+        val shiftedGemA = board.getGem(0, 2)
+        assertNotNull(shiftedGemA)
+        assertEquals(gemA.id, shiftedGemA?.id)
+        assertEquals(1, shiftedGemA?.posY) // Still has old posY
+
+        val shiftedGemB = board.getGem(0, 3)
+        assertNotNull(shiftedGemB)
+        assertEquals(gemB.id, shiftedGemB?.id)
+        assertEquals(3, shiftedGemB?.posY)
+
+        // Check new gems
+        val newGem1 = board.getGem(0, 1) // bottom-most empty was row 1
+        val newGem2 = board.getGem(0, 0) // then row 0
+        assertNotNull(newGem1)
+        assertNotNull(newGem2)
+        assertEquals(-1, newGem1?.posY)
+        assertEquals(-2, newGem2?.posY)
+
+        // 2. Finalize Fall
+        board.finalizeFall()
+
+        assertEquals(2, board.getGem(0, 2)?.posY)
+        assertEquals(3, board.getGem(0, 3)?.posY)
+        assertEquals(1, board.getGem(0, 1)?.posY)
+        assertEquals(0, board.getGem(0, 0)?.posY)
+    }
 }
