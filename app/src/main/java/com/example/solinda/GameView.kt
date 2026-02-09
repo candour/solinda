@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.*
 import android.util.AttributeSet
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -280,6 +281,7 @@ class GameView @JvmOverloads constructor(
                     val stockRect = RectF(stockX - calculatedCardWidth / 2, stockY - calculatedCardHeight / 2, stockX + calculatedCardWidth / 2, stockY + calculatedCardHeight / 2)
                     if (stockRect.contains(x, y)) {
                         performClick()
+                        performHaptic()
                         previousWasteState = viewModel.waste.first().cards.toList()
                         val drawnCards = viewModel.drawFromStock()
                         if (drawnCards.isNotEmpty()) {
@@ -391,6 +393,7 @@ class GameView @JvmOverloads constructor(
                                     if (x in fx..(fx + calculatedCardWidth) && y in fy..(fy + calculatedCardHeight)) {
                                         if (viewModel.canPlaceOnFoundation(stack.first(), foundation)) {
                                             viewModel.moveToFoundation(fromPile, foundation)
+                                            performHaptic()
                                             resetDrag()
                                             invalidate()
                                             checkForAutoComplete()
@@ -404,6 +407,7 @@ class GameView @JvmOverloads constructor(
                                     val fcy = getPileY(freeCell)
                                     if (x in fcx..(fcx + calculatedCardWidth) && y in fcy..(fcy + calculatedCardHeight)) {
                                         viewModel.moveStackToFreeCell(fromPile, stack, freeCell)
+                                        performHaptic()
                                         resetDrag()
                                         invalidate()
                                         checkForAutoComplete()
@@ -419,6 +423,7 @@ class GameView @JvmOverloads constructor(
                                 if (x in px..(px + calculatedCardWidth) && y > tableauStartY) {
                                     if (viewModel.canPlaceOnTableau(stack, pile)) {
                                         viewModel.moveStackToTableau(fromPile, stack, pile)
+                                        performHaptic()
                                         resetDrag()
                                         invalidate()
                                         checkForAutoComplete()
@@ -441,6 +446,7 @@ class GameView @JvmOverloads constructor(
                                 val targetPile = viewModel.autoMoveCard(card, pile)
                                 if (targetPile != null) {
                                     performClick()
+                                    performHaptic()
                                     val targetX = getPileX(targetPile)
                                     val targetY = getPileY(targetPile)
                                     animateCardTo(card, targetX, targetY) {
@@ -461,6 +467,12 @@ class GameView @JvmOverloads constructor(
     override fun performClick(): Boolean {
         super.performClick()
         return true
+    }
+
+    private fun performHaptic() {
+        if (viewModel.isHapticsEnabled) {
+            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        }
     }
 
     private fun getPileX(pile: Pile): Float {

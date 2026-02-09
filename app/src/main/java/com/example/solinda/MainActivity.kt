@@ -14,6 +14,7 @@ import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
 import android.text.InputType
+import android.widget.CheckBox
 import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
@@ -42,7 +43,7 @@ class MainActivity : ComponentActivity() {
 
         jewelindaComposeView = ComposeView(this).apply {
             setContent {
-                JewelindaScreen(viewModel = jewelindaViewModel)
+                JewelindaScreen(viewModel = jewelindaViewModel, gameViewModel = viewModel)
             }
         }
         frameLayout.addView(jewelindaComposeView)
@@ -207,6 +208,14 @@ class MainActivity : ComponentActivity() {
         revealFactorLayout.addView(revealFactorInput)
         rightColumn.addView(revealFactorLayout)
 
+        // Haptic Feedback Toggle
+        val hapticFeedbackCheckBox = CheckBox(this).apply {
+            text = "Haptic Feedback"
+            isChecked = viewModel.isHapticsEnabled
+            setPadding(0, 20, 0, 0)
+        }
+        rightColumn.addView(hapticFeedbackCheckBox)
+
         builder.setView(mainLayout)
 
         builder.setPositiveButton("Save") { dialog, _ ->
@@ -215,6 +224,7 @@ class MainActivity : ComponentActivity() {
             val newLeftMargin = leftMarginInput.text.toString().toIntOrNull() ?: if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin
             val newRightMargin = rightMarginInput.text.toString().toIntOrNull() ?: if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin
             val newRevealFactor = revealFactorInput.text.toString().toFloatOrNull() ?: viewModel.tableauCardRevealFactor
+            val newHapticsEnabled = hapticFeedbackCheckBox.isChecked
 
             val marginsChanged = if (isLandscape) {
                 viewModel.leftMarginLandscape != newLeftMargin || viewModel.rightMarginLandscape != newRightMargin
@@ -225,7 +235,8 @@ class MainActivity : ComponentActivity() {
             val gameSettingsChanged = viewModel.gameType != selectedGameType ||
                     viewModel.dealCount != selectedDealCount ||
                     marginsChanged ||
-                    viewModel.tableauCardRevealFactor != newRevealFactor
+                    viewModel.tableauCardRevealFactor != newRevealFactor ||
+                    viewModel.isHapticsEnabled != newHapticsEnabled
 
             if (gameSettingsChanged) {
                 // Apply settings
@@ -237,6 +248,7 @@ class MainActivity : ComponentActivity() {
                     viewModel.rightMargin = newRightMargin
                 }
                 viewModel.tableauCardRevealFactor = newRevealFactor
+                viewModel.isHapticsEnabled = newHapticsEnabled
                 viewModel.resetGame(selectedGameType, selectedDealCount)
                 updateGameVisibility()
                 gameView.invalidate()

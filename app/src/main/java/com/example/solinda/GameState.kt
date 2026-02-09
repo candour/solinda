@@ -12,7 +12,8 @@ data class GameState(
     val rightMargin: Int = 20,
     val leftMarginLandscape: Int = 20,
     val rightMarginLandscape: Int = 20,
-    val tableauCardRevealFactor: Float = 0.3f
+    val tableauCardRevealFactor: Float = 0.3f,
+    val isHapticsEnabled: Boolean = true
 )
 
 data class PileState(

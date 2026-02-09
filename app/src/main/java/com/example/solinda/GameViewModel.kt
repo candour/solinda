@@ -21,6 +21,7 @@ class GameViewModel : ViewModel() {
     var leftMarginLandscape: Int = 20
     var rightMarginLandscape: Int = 20
     var tableauCardRevealFactor: Float = 0.3f
+    var isHapticsEnabled: Boolean = true
 
     init {
         initializeGameType(gameType)
@@ -210,7 +211,8 @@ class GameViewModel : ViewModel() {
             rightMargin = rightMargin,
             leftMarginLandscape = leftMarginLandscape,
             rightMarginLandscape = rightMarginLandscape,
-            tableauCardRevealFactor = tableauCardRevealFactor
+            tableauCardRevealFactor = tableauCardRevealFactor,
+            isHapticsEnabled = isHapticsEnabled
         )
         val json = Gson().toJson(gameState)
         prefs.edit().putString("game_state", json).apply()
@@ -233,6 +235,7 @@ class GameViewModel : ViewModel() {
                 leftMarginLandscape = gameState.leftMarginLandscape
                 rightMarginLandscape = gameState.rightMarginLandscape
                 tableauCardRevealFactor = gameState.tableauCardRevealFactor
+                isHapticsEnabled = gameState.isHapticsEnabled
             } catch (e: Exception) {
                 // Handle cases where the saved game state is invalid (e.g. old CALCULATOR game type)
                 initializeGameType(GameType.KLONDIKE)
