@@ -4,12 +4,12 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.geometry.Offset
@@ -40,6 +42,17 @@ val SnappySpringOffset = spring<Offset>(
     dampingRatio = Spring.DampingRatioNoBouncy,
     stiffness = Spring.StiffnessMedium
 )
+
+fun getGemIcon(type: GemType): ImageVector {
+    return when (type) {
+        GemType.RED -> GemIcons.Diamond
+        GemType.BLUE -> GemIcons.Square
+        GemType.GREEN -> GemIcons.Circle
+        GemType.YELLOW -> GemIcons.Hexagon
+        GemType.PURPLE -> GemIcons.Triangle
+        GemType.ORANGE -> GemIcons.Star
+    }
+}
 
 @Composable
 fun GemComponent(
@@ -107,6 +120,33 @@ fun GemComponent(
                 this.transformOrigin = TransformOrigin(0.5f, 1f)
             }
             .padding(4.dp)
-            .background(color = getGemColor(gem.type), shape = CircleShape)
-    )
+    ) {
+        val icon = getGemIcon(gem.type)
+
+        // Shadow Layer (Offset Darkened Version)
+        Image(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(x = 2.dp, y = 2.dp),
+            colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.3f))
+        )
+
+        // Base Layer (Main Gem Color)
+        Image(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            colorFilter = ColorFilter.tint(getGemColor(gem.type))
+        )
+
+        // Highlight Layer (Glint)
+        Image(
+            imageVector = GemIcons.Glint,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.4f))
+        )
+    }
 }
