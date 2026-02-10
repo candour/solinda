@@ -166,7 +166,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 val clearedCount = boardCopy.findAndRemoveMatches()
                 _score.value += clearedCount * 50 * multiplier
                 _board.value = boardCopy.copy()
-                delay(600)
+                delay(400)
 
                 _isGravityEnabled.value = true
                 boardCopy.refillAndPrepareFall()
@@ -175,7 +175,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
                 boardCopy.finalizeFall()
                 _board.value = boardCopy.copy()
-                delay(600)
+                delay(400)
 
                 multiplier *= 2
             }
