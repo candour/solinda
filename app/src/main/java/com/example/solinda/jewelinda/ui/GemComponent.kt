@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.solinda.jewelinda.Gem
@@ -30,8 +31,24 @@ import com.example.solinda.jewelinda.GemType
 import com.example.solinda.jewelinda.getGemColor
 import kotlin.math.roundToInt
 
+val SnappySpring = spring<IntOffset>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMedium
+)
+
+val SnappySpringOffset = spring<Offset>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMedium
+)
+
 @Composable
-fun GemComponent(gem: Gem, size: Dp, isGravityEnabled: Boolean, modifier: Modifier = Modifier) {
+fun GemComponent(
+    gem: Gem,
+    size: Dp,
+    isGravityEnabled: Boolean,
+    dragOffset: Offset = Offset.Zero,
+    modifier: Modifier = Modifier
+) {
     val density = LocalDensity.current
     val sizePx = with(density) { size.toPx() }
 
@@ -66,7 +83,7 @@ fun GemComponent(gem: Gem, size: Dp, isGravityEnabled: Boolean, modifier: Modifi
     val animatedOffset by animateIntOffsetAsState(
         targetValue = targetOffset,
         label = "gemOffset",
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+        animationSpec = SnappySpring,
         finishedListener = {
             if (willSquashOnFinish) {
                 isSquashing = true
@@ -78,7 +95,12 @@ fun GemComponent(gem: Gem, size: Dp, isGravityEnabled: Boolean, modifier: Modifi
     Box(
         modifier = modifier
             .size(size)
-            .offset { animatedOffset }
+            .offset {
+                IntOffset(
+                    x = animatedOffset.x + dragOffset.x.roundToInt(),
+                    y = animatedOffset.y + dragOffset.y.roundToInt()
+                )
+            }
             .graphicsLayer {
                 this.scaleX = scaleX
                 this.scaleY = scaleY

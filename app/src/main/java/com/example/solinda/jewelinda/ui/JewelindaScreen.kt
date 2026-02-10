@@ -80,7 +80,11 @@ fun JewelindaScreen(viewModel: JewelindaViewModel, gameViewModel: GameViewModel)
                     }
                 }
 
-                GameGrid(viewModel = viewModel, particleViewModel = particleViewModel)
+                GameGrid(
+                    viewModel = viewModel,
+                    particleViewModel = particleViewModel,
+                    isHapticsEnabled = gameViewModel.isHapticsEnabled
+                )
             }
 
             if (moves <= 0) {
