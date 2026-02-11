@@ -93,6 +93,7 @@ class GameView @JvmOverloads constructor(
     private val cardImages = mutableMapOf<String, Bitmap>()
     private val activeAnimations = mutableListOf<AnimationState>()
     private var isAutoCompleting = false
+    private var hasShownWinEffect = false
 
     private fun loadCardImages() {
         if (width == 0 || height == 0) return // Don't load if view not measured
@@ -154,9 +155,15 @@ class GameView @JvmOverloads constructor(
         }
 
         if (viewModel.checkWin()) {
+            if (!hasShownWinEffect && activeAnimations.isEmpty() && !isAutoCompleting) {
+                hasShownWinEffect = true
+                performDoubleHaptic()
+            }
             paint.color = Color.YELLOW
             paint.textSize = 80f
             canvas.drawText("🎉 You Win!", width / 3f, height / 2f, paint)
+        } else {
+            hasShownWinEffect = false
         }
     }
 
@@ -390,7 +397,8 @@ class GameView @JvmOverloads constructor(
                                 for (foundation in viewModel.foundations) {
                                     val fx = getPileX(foundation)
                                     val fy = getPileY(foundation)
-                                    if (x in fx..(fx + calculatedCardWidth) && y in fy..(fy + calculatedCardHeight)) {
+                                    if (x in (fx - calculatedCardWidth / 2)..(fx + calculatedCardWidth / 2) &&
+                                        y in (fy - calculatedCardHeight / 2)..(fy + calculatedCardHeight / 2)) {
                                         if (viewModel.canPlaceOnFoundation(stack.first(), foundation)) {
                                             viewModel.moveToFoundation(fromPile, foundation)
                                             performHaptic()
@@ -405,7 +413,8 @@ class GameView @JvmOverloads constructor(
                                 for (freeCell in viewModel.freeCells) {
                                     val fcx = getPileX(freeCell)
                                     val fcy = getPileY(freeCell)
-                                    if (x in fcx..(fcx + calculatedCardWidth) && y in fcy..(fcy + calculatedCardHeight)) {
+                                    if (x in (fcx - calculatedCardWidth / 2)..(fcx + calculatedCardWidth / 2) &&
+                                        y in (fcy - calculatedCardHeight / 2)..(fcy + calculatedCardHeight / 2)) {
                                         viewModel.moveStackToFreeCell(fromPile, stack, freeCell)
                                         performHaptic()
                                         resetDrag()
@@ -420,7 +429,7 @@ class GameView @JvmOverloads constructor(
                             for (pile in viewModel.tableau) {
                                 val px = getPileX(pile)
                                 val tableauStartY = getPileY(pile) - calculatedCardHeight / 2f
-                                if (x in px..(px + calculatedCardWidth) && y > tableauStartY) {
+                                if (x in (px - calculatedCardWidth / 2)..(px + calculatedCardWidth / 2) && y > tableauStartY) {
                                     if (viewModel.canPlaceOnTableau(stack, pile)) {
                                         viewModel.moveStackToTableau(fromPile, stack, pile)
                                         performHaptic()
@@ -472,6 +481,15 @@ class GameView @JvmOverloads constructor(
     private fun performHaptic() {
         if (viewModel.isHapticsEnabled) {
             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        }
+    }
+
+    private fun performDoubleHaptic() {
+        if (viewModel.isHapticsEnabled) {
+            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            postDelayed({
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            }, 150)
         }
     }
 
