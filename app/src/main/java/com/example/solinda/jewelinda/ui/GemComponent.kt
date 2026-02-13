@@ -1,23 +1,12 @@
 package com.example.solinda.jewelinda.ui
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntOffsetAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.TransformOrigin
@@ -93,6 +82,14 @@ fun GemComponent(
         label = "scaleY"
     )
 
+    val infiniteTransition = rememberInfiniteTransition(label = "bombPulse")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse),
+        label = "pulse"
+    )
+
     val animatedOffset by animateIntOffsetAsState(
         targetValue = targetOffset,
         label = "gemOffset",
@@ -115,20 +112,31 @@ fun GemComponent(
                 )
             }
             .graphicsLayer {
-                this.scaleX = scaleX
-                this.scaleY = scaleY
+                this.scaleX = scaleX * if (gem.isBomb) pulse else 1f
+                this.scaleY = scaleY * if (gem.isBomb) pulse else 1f
                 this.transformOrigin = TransformOrigin(0.5f, 1f)
             }
             .padding(4.dp)
     ) {
         val icon = getGemIcon(gem.type)
 
+        if (gem.isBomb) {
+            // Bomb Layer: Glow/Flare
+            Image(
+                imageVector = GemIcons.Flare,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                colorFilter = ColorFilter.tint(getGemColor(gem.type).copy(alpha = 0.6f))
+            )
+        }
+
         // Shadow Layer (Offset Darkened Version)
         Image(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .align(Alignment.Center)
                 .offset(x = 2.dp, y = 2.dp),
             colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.3f))
         )
@@ -137,7 +145,9 @@ fun GemComponent(
         Image(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .align(Alignment.Center),
             colorFilter = ColorFilter.tint(getGemColor(gem.type))
         )
 
@@ -145,7 +155,9 @@ fun GemComponent(
         Image(
             imageVector = GemIcons.Glint,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .align(Alignment.Center),
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.4f))
         )
     }

@@ -11,7 +11,8 @@ data class Gem(
     val id: UUID = UUID.randomUUID(),
     val type: GemType,
     val posX: Int,
-    val posY: Int
+    val posY: Int,
+    val isBomb: Boolean = false
 )
 
 fun getGemColor(type: GemType): Color {

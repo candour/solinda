@@ -9,10 +9,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.solinda.GameViewModel
 import com.example.solinda.jewelinda.JewelindaEvent
@@ -29,16 +34,42 @@ fun JewelindaScreen(
     val moves by viewModel.movesRemaining.collectAsState()
     val particleViewModel: ParticleViewModel = viewModel()
     val view = LocalView.current
+    val density = LocalDensity.current
+
+    var shakeOffset by remember { mutableStateOf(Offset.Zero) }
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
-            if (event is JewelindaEvent.MatchPerformed && gameViewModel.isHapticsEnabled) {
-                val hapticType = when {
-                    event.size >= 5 -> HapticFeedbackConstants.LONG_PRESS
-                    event.size >= 4 -> HapticFeedbackConstants.KEYBOARD_TAP
-                    else -> HapticFeedbackConstants.VIRTUAL_KEY
+            when (event) {
+                is JewelindaEvent.MatchPerformed -> {
+                    if (gameViewModel.isHapticsEnabled) {
+                        val hapticType = when {
+                            event.size >= 5 -> HapticFeedbackConstants.LONG_PRESS
+                            event.size >= 4 -> HapticFeedbackConstants.KEYBOARD_TAP
+                            else -> HapticFeedbackConstants.VIRTUAL_KEY
+                        }
+                        view.performHapticFeedback(hapticType)
+                    }
                 }
-                view.performHapticFeedback(hapticType)
+                is JewelindaEvent.BombExploded -> {
+                    if (gameViewModel.isHapticsEnabled) {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    }
+                    // Screen shake for 300ms
+                    val startTime = System.currentTimeMillis()
+                    while (System.currentTimeMillis() - startTime < 300) {
+                        val magnitude = 6.dp
+                        shakeOffset = with(density) {
+                            Offset(
+                                ((Math.random().toFloat() * 2 - 1) * magnitude.toPx()),
+                                ((Math.random().toFloat() * 2 - 1) * magnitude.toPx())
+                            )
+                        }
+                        delay(20)
+                    }
+                    shakeOffset = Offset.Zero
+                }
+                else -> {}
             }
         }
     }
@@ -57,6 +88,7 @@ fun JewelindaScreen(
                     viewModel = viewModel,
                     particleViewModel = particleViewModel,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
+                    shakeOffset = shakeOffset,
                     onOptionsClick = onOptionsClick
                 )
             } else {
@@ -66,6 +98,7 @@ fun JewelindaScreen(
                     viewModel = viewModel,
                     particleViewModel = particleViewModel,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
+                    shakeOffset = shakeOffset,
                     onOptionsClick = onOptionsClick
                 )
             }
@@ -88,6 +121,7 @@ fun PortraitLayout(
     viewModel: JewelindaViewModel,
     particleViewModel: ParticleViewModel,
     isHapticsEnabled: Boolean,
+    shakeOffset: Offset,
     onOptionsClick: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -152,7 +186,12 @@ fun PortraitLayout(
         }
 
         // Board explicitly centered in full space
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset { IntOffset(shakeOffset.x.roundToInt(), shakeOffset.y.roundToInt()) },
+            contentAlignment = Alignment.Center
+        ) {
             GameGrid(
                 viewModel = viewModel,
                 particleViewModel = particleViewModel,
@@ -169,6 +208,7 @@ fun LandscapeLayout(
     viewModel: JewelindaViewModel,
     particleViewModel: ParticleViewModel,
     isHapticsEnabled: Boolean,
+    shakeOffset: Offset,
     onOptionsClick: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -207,7 +247,8 @@ fun LandscapeLayout(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .aspectRatio(1f),
+                    .aspectRatio(1f)
+                    .offset { IntOffset(shakeOffset.x.roundToInt(), shakeOffset.y.roundToInt()) },
                 contentAlignment = Alignment.Center
             ) {
                 GameGrid(
