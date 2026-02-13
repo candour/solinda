@@ -30,6 +30,8 @@ class MainActivity : ComponentActivity() {
     private val jewelindaViewModel: JewelindaViewModel by viewModels()
     private lateinit var gameView: GameView
     private lateinit var jewelindaComposeView: ComposeView
+    private lateinit var newGameButton: Button
+    private lateinit var optionsButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,13 +47,17 @@ class MainActivity : ComponentActivity() {
         jewelindaComposeView = ComposeView(this).apply {
             setContent {
                 JewelindaTheme {
-                    JewelindaScreen(viewModel = jewelindaViewModel, gameViewModel = viewModel)
+                    JewelindaScreen(
+                        viewModel = jewelindaViewModel,
+                        gameViewModel = viewModel,
+                        onOptionsClick = { showOptionsDialog() }
+                    )
                 }
             }
         }
         frameLayout.addView(jewelindaComposeView)
 
-        val newGameButton = Button(this).apply {
+        newGameButton = Button(this).apply {
             text = "New Game"
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -72,7 +78,7 @@ class MainActivity : ComponentActivity() {
         }
         frameLayout.addView(newGameButton)
 
-        val optionsButton = Button(this).apply {
+        optionsButton = Button(this).apply {
             text = "Options"
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -96,9 +102,13 @@ class MainActivity : ComponentActivity() {
         if (viewModel.gameType == GameType.JEWELINDA) {
             gameView.visibility = View.GONE
             jewelindaComposeView.visibility = View.VISIBLE
+            newGameButton.visibility = View.GONE
+            optionsButton.visibility = View.GONE
         } else {
             gameView.visibility = View.VISIBLE
             jewelindaComposeView.visibility = View.GONE
+            newGameButton.visibility = View.VISIBLE
+            optionsButton.visibility = View.VISIBLE
         }
     }
 
