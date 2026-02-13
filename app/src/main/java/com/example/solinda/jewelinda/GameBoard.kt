@@ -1,5 +1,10 @@
 package com.example.solinda.jewelinda
 
+data class MatchGroup(
+    val gems: List<Pair<Int, Int>>,
+    val type: GemType
+)
+
 class GameBoard {
     companion object {
         const val WIDTH = 8
@@ -150,7 +155,11 @@ class GameBoard {
     }
 
     fun findAllMatches(): Set<Pair<Int, Int>> {
-        val matches = mutableSetOf<Pair<Int, Int>>()
+        return findAllMatchGroups().flatMap { it.gems }.toSet()
+    }
+
+    fun findAllMatchGroups(): List<MatchGroup> {
+        val groups = mutableListOf<MatchGroup>()
         // Horizontal
         for (y in 0 until HEIGHT) {
             var x = 0
@@ -162,9 +171,8 @@ class GameBoard {
                         count++
                     }
                     if (count >= 3) {
-                        for (i in 0 until count) {
-                            matches.add(Pair(x + i, y))
-                        }
+                        val gems = (0 until count).map { Pair(x + it, y) }
+                        groups.add(MatchGroup(gems, type))
                     }
                     x += count
                 } else {
@@ -183,9 +191,8 @@ class GameBoard {
                         count++
                     }
                     if (count >= 3) {
-                        for (i in 0 until count) {
-                            matches.add(Pair(x, y + i))
-                        }
+                        val gems = (0 until count).map { Pair(x, y + it) }
+                        groups.add(MatchGroup(gems, type))
                     }
                     y += count
                 } else {
@@ -193,16 +200,36 @@ class GameBoard {
                 }
             }
         }
-        return matches
+        return groups
     }
 
     fun findAndRemoveMatches(): Int {
         val matches = findAllMatches()
         if (matches.isEmpty()) return 0
-        for ((x, y) in matches) {
+        removeGems(matches)
+        return matches.size
+    }
+
+    fun removeGems(coords: Collection<Pair<Int, Int>>) {
+        for ((x, y) in coords) {
             grid[y][x] = null
         }
-        return matches.size
+    }
+
+    fun getExplosionArea(x: Int, y: Int): List<Pair<Int, Int>> {
+        val area = mutableListOf<Pair<Int, Int>>()
+        for (iy in y - 1..y + 1) {
+            for (ix in x - 1..x + 1) {
+                if (ix in 0 until WIDTH && iy in 0 until HEIGHT) {
+                    area.add(Pair(ix, iy))
+                }
+            }
+        }
+        return area
+    }
+
+    fun setBomb(x: Int, y: Int, type: GemType) {
+        grid[y][x] = Gem(type = type, posX = x, posY = y, isBomb = true)
     }
 
     fun shiftGemsDown() {

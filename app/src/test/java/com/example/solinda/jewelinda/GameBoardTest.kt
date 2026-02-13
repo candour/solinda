@@ -221,4 +221,49 @@ class GameBoardTest {
         assertEquals(1, board.getGem(0, 1)?.posY)
         assertEquals(0, board.getGem(0, 0)?.posY)
     }
+
+    @Test
+    fun testFindAllMatchGroups() {
+        val board = GameBoard()
+        val grid = Array(GameBoard.HEIGHT) { arrayOfNulls<Gem>(GameBoard.WIDTH) }
+
+        // Horizontal match of 4
+        grid[0][0] = Gem(type = GemType.RED, posX = 0, posY = 0)
+        grid[0][1] = Gem(type = GemType.RED, posX = 1, posY = 0)
+        grid[0][2] = Gem(type = GemType.RED, posX = 2, posY = 0)
+        grid[0][3] = Gem(type = GemType.RED, posX = 3, posY = 0)
+
+        board.setGrid(grid)
+        val groups = board.findAllMatchGroups()
+        assertEquals(1, groups.size)
+        assertEquals(4, groups[0].gems.size)
+        assertEquals(GemType.RED, groups[0].type)
+    }
+
+    @Test
+    fun testExplosionArea() {
+        val board = GameBoard()
+        val area = board.getExplosionArea(1, 1)
+        assertEquals(9, area.size)
+        assertTrue(area.contains(Pair(0, 0)))
+        assertTrue(area.contains(Pair(2, 2)))
+
+        val cornerArea = board.getExplosionArea(0, 0)
+        assertEquals(4, cornerArea.size)
+        assertTrue(cornerArea.contains(Pair(0, 0)))
+        assertTrue(cornerArea.contains(Pair(1, 1)))
+        assertFalse(cornerArea.contains(Pair(-1, -1)))
+    }
+
+    @Test
+    fun testSetBomb() {
+        val board = GameBoard()
+        board.setBomb(2, 3, GemType.PURPLE)
+        val gem = board.getGem(2, 3)
+        assertNotNull(gem)
+        assertTrue(gem!!.isBomb)
+        assertEquals(GemType.PURPLE, gem.type)
+        assertEquals(2, gem.posX)
+        assertEquals(3, gem.posY)
+    }
 }

@@ -21,6 +21,7 @@ sealed class JewelindaEvent {
     data class GemCleared(val x: Int, val y: Int, val type: GemType) : JewelindaEvent()
     data class MatchPerformed(val size: Int) : JewelindaEvent()
     data object Shuffle : JewelindaEvent()
+    data object BombExploded : JewelindaEvent()
 }
 
 class JewelindaViewModel(application: Application) : AndroidViewModel(application) {
@@ -146,6 +147,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         _isProcessing.value = true
         _isGravityEnabled.value = false
 
+        val swapTarget = Pair(col2, row2)
         val boardCopy = _board.value.copy()
         boardCopy.swapGems(col1, row1, col2, row2)
         _board.value = boardCopy
@@ -154,16 +156,65 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         if (boardCopy.hasAnyMatch()) {
             _movesRemaining.value -= 1
             var multiplier = 1
+            var isInitialMove = true
             while (boardCopy.hasAnyMatch()) {
-                val matches = boardCopy.findAllMatches()
-                _events.emit(JewelindaEvent.MatchPerformed(matches.size))
-                matches.forEach { (x, y) ->
+                val matchGroups = boardCopy.findAllMatchGroups()
+                val matchedCoords = matchGroups.flatMap { it.gems }.toSet()
+
+                // Identify bombs to be created
+                val newBombs = mutableListOf<Triple<Int, Int, GemType>>()
+                for (group in matchGroups) {
+                    if (group.gems.size >= 4) {
+                        val bombPos = if (isInitialMove && group.gems.contains(swapTarget)) {
+                            swapTarget
+                        } else {
+                            group.gems.minWithOrNull(compareBy({ it.second }, { it.first }))!!
+                        }
+                        newBombs.add(Triple(bombPos.first, bombPos.second, group.type))
+                    }
+                }
+
+                // Identify triggered bombs (matched bombs or hit by explosion)
+                val allClearedCoords = matchedCoords.toMutableSet()
+                val bombsToTrigger = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.isBomb == true }.toMutableList()
+                val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
+
+                var bIdx = 0
+                while (bIdx < bombsToTrigger.size) {
+                    val (bx, by) = bombsToTrigger[bIdx]
+                    if (triggeredBombs.add(Pair(bx, by))) {
+                        _events.emit(JewelindaEvent.BombExploded)
+                        val area = boardCopy.getExplosionArea(bx, by)
+                        for (coord in area) {
+                            val gem = boardCopy.getGem(coord.first, coord.second)
+                            if (gem != null) {
+                                if (allClearedCoords.add(coord)) {
+                                    // Gem cleared by explosion
+                                }
+                                if (gem.isBomb && !triggeredBombs.contains(coord)) {
+                                    bombsToTrigger.add(coord)
+                                }
+                            }
+                        }
+                    }
+                    bIdx++
+                }
+
+                _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size))
+                allClearedCoords.forEach { (x, y) ->
                     boardCopy.getGem(x, y)?.let { gem ->
                         _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
                     }
                 }
 
-                val clearedCount = boardCopy.findAndRemoveMatches()
+                val clearedCount = allClearedCoords.size
+                boardCopy.removeGems(allClearedCoords)
+
+                // Place new bombs
+                for ((bx, by, bType) in newBombs) {
+                    boardCopy.setBomb(bx, by, bType)
+                }
+
                 _score.value += clearedCount * 50 * multiplier
                 _board.value = boardCopy.copy()
                 delay(400)
@@ -178,6 +229,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 delay(400)
 
                 multiplier *= 2
+                isInitialMove = false
             }
 
             // Check if shuffle needed

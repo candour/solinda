@@ -149,4 +149,38 @@ object GemIcons {
             close()
         }.build()
     }
+
+    val Flare: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Flare",
+            defaultWidth = 100.dp,
+            defaultHeight = 100.dp,
+            viewportWidth = 100f,
+            viewportHeight = 100f
+        ).path(
+            fill = SolidColor(Color.Black),
+            pathFillType = PathFillType.EvenOdd
+        ) {
+            // A simple 8-pointed flare/sparkle
+            moveTo(50f, 0f)
+            lineTo(55f, 45f)
+            lineTo(100f, 50f)
+            lineTo(55f, 55f)
+            lineTo(50f, 100f)
+            lineTo(45f, 55f)
+            lineTo(0f, 50f)
+            lineTo(45f, 45f)
+            close()
+
+            moveTo(50f, 25f)
+            lineTo(58f, 42f)
+            lineTo(75f, 50f)
+            lineTo(58f, 58f)
+            lineTo(50f, 75f)
+            lineTo(42f, 58f)
+            lineTo(25f, 50f)
+            lineTo(42f, 42f)
+            close()
+        }.build()
+    }
 }
