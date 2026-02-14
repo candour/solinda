@@ -19,11 +19,9 @@ import com.example.solinda.jewelinda.JewelindaViewModel
 @Composable
 fun GameOverOverlay(
     score: Int,
-    targetScore: Int,
+    isWin: Boolean,
     onPlayAgain: () -> Unit
 ) {
-    val isWin = score >= targetScore
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -53,11 +51,13 @@ fun GameOverOverlay(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Text(
-                text = "Target Score: $targetScore",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            if (!isWin) {
+                Text(
+                    text = "Objectives not met!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Red.copy(alpha = 0.7f)
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

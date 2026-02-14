@@ -45,6 +45,9 @@ class MainActivity : ComponentActivity() {
         frameLayout.addView(gameView)
 
         jewelindaComposeView = ComposeView(this).apply {
+            jewelindaViewModel.soundManager = object : com.example.solinda.jewelinda.SoundManager {
+                override fun playIceCrack() {}
+            }
             setContent {
                 JewelindaTheme {
                     JewelindaScreen(

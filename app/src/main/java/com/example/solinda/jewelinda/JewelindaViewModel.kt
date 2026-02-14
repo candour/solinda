@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 sealed class JewelindaEvent {
     data class GemCleared(val x: Int, val y: Int, val type: GemType) : JewelindaEvent()
-    data class MatchPerformed(val size: Int) : JewelindaEvent()
+    data class MatchPerformed(val size: Int, val isFrostCleared: Boolean = false) : JewelindaEvent()
     data object Shuffle : JewelindaEvent()
     data object BombExploded : JewelindaEvent()
 }
@@ -30,8 +30,16 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         const val INITIAL_MOVES = 30
     }
 
+    var soundManager: SoundManager? = null
+
     private val _board = MutableStateFlow(GameBoard())
     val board: StateFlow<GameBoard> = _board.asStateFlow()
+
+    private val _levelType = MutableStateFlow(LevelType.COLOR_COLLECTION)
+    val levelType: StateFlow<LevelType> = _levelType.asStateFlow()
+
+    private val _objectives = MutableStateFlow<Map<GemType, Int>>(emptyMap())
+    val objectives: StateFlow<Map<GemType, Int>> = _objectives.asStateFlow()
 
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
@@ -67,10 +75,16 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         val boardJson = gson.toJson(_board.value.getGridFlattened())
+        val frostJson = gson.toJson(_board.value.getFrostLevelsFlattened())
+        val objectiveJson = gson.toJson(_objectives.value)
+
         val updatedGameState = gameState.copy(
             jewelindaBoardJson = boardJson,
             jewelindaScore = _score.value,
-            jewelindaMoves = _movesRemaining.value
+            jewelindaMoves = _movesRemaining.value,
+            jewelindaLevelType = _levelType.value,
+            frostLevelJson = frostJson,
+            objectiveProgressJson = objectiveJson
         )
 
         prefs.edit().putString("game_state", gson.toJson(updatedGameState)).apply()
@@ -89,9 +103,22 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                     val gems: List<Gem> = gson.fromJson(boardJson, gemListType)
                     val loadedBoard = GameBoard()
                     loadedBoard.loadGrid(gems)
+
+                    gameState.frostLevelJson?.let { fJson ->
+                        val frost: Array<IntArray> = gson.fromJson(fJson, Array<IntArray>::class.java)
+                        loadedBoard.loadFrost(frost)
+                    }
+
                     _board.value = loadedBoard
                     _score.value = gameState.jewelindaScore
                     _movesRemaining.value = gameState.jewelindaMoves
+                    _levelType.value = gameState.jewelindaLevelType
+
+                    gameState.objectiveProgressJson?.let { oJson ->
+                        val objType = object : TypeToken<Map<GemType, Int>>() {}.type
+                        val objectives: Map<GemType, Int> = gson.fromJson(oJson, objType)
+                        _objectives.value = objectives
+                    }
                     return
                 }
             } catch (e: Exception) {
@@ -115,10 +142,47 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     fun newGame() {
         val newBoard = GameBoard()
         newBoard.initBoard()
+
+        val type = LevelType.entries.random()
+        _levelType.value = type
+
+        if (type == LevelType.FROST_CLEARANCE || type == LevelType.HYBRID) {
+            newBoard.initFrost()
+        }
+
+        if (type == LevelType.COLOR_COLLECTION || type == LevelType.HYBRID) {
+            val colors = GemType.entries.shuffled().take(2)
+            _objectives.value = colors.associateWith { 25 }
+        } else {
+            _objectives.value = emptyMap()
+        }
+
         _board.value = newBoard
         _score.value = 0
         _movesRemaining.value = INITIAL_MOVES
         saveGame()
+    }
+
+    fun checkWinCondition(): Boolean {
+        val objectivesMet = _objectives.value.values.all { it <= 0 }
+
+        val frostMet = if (_levelType.value == LevelType.FROST_CLEARANCE || _levelType.value == LevelType.HYBRID) {
+            val board = _board.value
+            var allClear = true
+            outer@ for (y in 0 until GameBoard.HEIGHT) {
+                for (x in 0 until GameBoard.WIDTH) {
+                    if (board.getFrostLevel(x, y) > 0) {
+                        allClear = false
+                        break@outer
+                    }
+                }
+            }
+            allClear
+        } else {
+            true
+        }
+
+        return objectivesMet && frostMet
     }
 
     fun onSwipe(x: Int, y: Int, direction: Direction) {
@@ -200,12 +264,27 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                     bIdx++
                 }
 
-                _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size))
+                var frostClearedInThisStep = false
+                val currentObjectives = _objectives.value.toMutableMap()
+
                 allClearedCoords.forEach { (x, y) ->
                     boardCopy.getGem(x, y)?.let { gem ->
                         _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
+                        if (currentObjectives.containsKey(gem.type)) {
+                            currentObjectives[gem.type] = (currentObjectives[gem.type]!! - 1).coerceAtLeast(0)
+                        }
+                    }
+                    if (boardCopy.decrementFrost(x, y)) {
+                        frostClearedInThisStep = true
                     }
                 }
+                _objectives.value = currentObjectives
+
+                if (frostClearedInThisStep) {
+                    soundManager?.playIceCrack()
+                }
+
+                _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size, frostClearedInThisStep))
 
                 val clearedCount = allClearedCoords.size
                 boardCopy.removeGems(allClearedCoords)

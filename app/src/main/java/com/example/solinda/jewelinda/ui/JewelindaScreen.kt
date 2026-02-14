@@ -19,10 +19,85 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import com.example.solinda.GameViewModel
+import com.example.solinda.jewelinda.GameBoard
+import com.example.solinda.jewelinda.GemType
 import com.example.solinda.jewelinda.JewelindaEvent
 import com.example.solinda.jewelinda.JewelindaViewModel
+import com.example.solinda.jewelinda.LevelType
 import com.example.solinda.jewelinda.ParticleViewModel
+import com.example.solinda.jewelinda.getGemColor
+
+@Composable
+fun ObjectiveBar(
+    objectives: Map<GemType, Int>,
+    levelType: LevelType,
+    board: GameBoard
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Color objectives
+        objectives.forEach { (type, count) ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                Image(
+                    imageVector = getGemIcon(type),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(getGemColor(type))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "x$count",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (count <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        // Frost objective
+        if (levelType == LevelType.FROST_CLEARANCE || levelType == LevelType.HYBRID) {
+            var frostCount = 0
+            for (y in 0 until GameBoard.HEIGHT) {
+                for (x in 0 until GameBoard.WIDTH) {
+                    if (board.getFrostLevel(x, y) > 0) frostCount++
+                }
+            }
+
+            if (objectives.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White.copy(alpha = 0.4f))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "x$frostCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (frostCount <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun JewelindaScreen(
@@ -30,8 +105,11 @@ fun JewelindaScreen(
     gameViewModel: GameViewModel,
     onOptionsClick: () -> Unit
 ) {
+    val board by viewModel.board.collectAsState()
     val score by viewModel.score.collectAsState()
     val moves by viewModel.movesRemaining.collectAsState()
+    val levelType by viewModel.levelType.collectAsState()
+    val objectives by viewModel.objectives.collectAsState()
     val particleViewModel: ParticleViewModel = viewModel()
     val view = LocalView.current
     val density = LocalDensity.current
@@ -43,6 +121,9 @@ fun JewelindaScreen(
             when (event) {
                 is JewelindaEvent.MatchPerformed -> {
                     if (gameViewModel.isHapticsEnabled) {
+                        if (event.isFrostCleared) {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        }
                         val hapticType = when {
                             event.size >= 5 -> HapticFeedbackConstants.LONG_PRESS
                             event.size >= 4 -> HapticFeedbackConstants.KEYBOARD_TAP
@@ -85,6 +166,9 @@ fun JewelindaScreen(
                 LandscapeLayout(
                     score = score,
                     moves = moves,
+                    levelType = levelType,
+                    objectives = objectives,
+                    board = board,
                     viewModel = viewModel,
                     particleViewModel = particleViewModel,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
@@ -95,6 +179,9 @@ fun JewelindaScreen(
                 PortraitLayout(
                     score = score,
                     moves = moves,
+                    levelType = levelType,
+                    objectives = objectives,
+                    board = board,
                     viewModel = viewModel,
                     particleViewModel = particleViewModel,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
@@ -106,7 +193,7 @@ fun JewelindaScreen(
             if (moves <= 0) {
                 GameOverOverlay(
                     score = score,
-                    targetScore = JewelindaViewModel.TARGET_SCORE,
+                    isWin = viewModel.checkWinCondition(),
                     onPlayAgain = { viewModel.newGame() }
                 )
             }
@@ -118,6 +205,9 @@ fun JewelindaScreen(
 fun PortraitLayout(
     score: Int,
     moves: Int,
+    levelType: LevelType,
+    objectives: Map<GemType, Int>,
+    board: GameBoard,
     viewModel: JewelindaViewModel,
     particleViewModel: ParticleViewModel,
     isHapticsEnabled: Boolean,
@@ -159,6 +249,16 @@ fun PortraitLayout(
             fontWeight = FontWeight.Bold,
             color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
         )
+
+        // Objective Bar between info and board
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .offset(y = topOffset10 + 60.dp) // Below score
+        ) {
+            ObjectiveBar(objectives = objectives, levelType = levelType, board = board)
+        }
 
         // Buttons on the right
         Column(
@@ -205,6 +305,9 @@ fun PortraitLayout(
 fun LandscapeLayout(
     score: Int,
     moves: Int,
+    levelType: LevelType,
+    objectives: Map<GemType, Int>,
+    board: GameBoard,
     viewModel: JewelindaViewModel,
     particleViewModel: ParticleViewModel,
     isHapticsEnabled: Boolean,
@@ -241,6 +344,9 @@ fun LandscapeLayout(
                     fontWeight = FontWeight.Bold,
                     color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                ObjectiveBar(objectives = objectives, levelType = levelType, board = board)
             }
 
             // Middle Column: Board

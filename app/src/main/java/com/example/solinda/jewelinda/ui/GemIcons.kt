@@ -183,4 +183,35 @@ object GemIcons {
             close()
         }.build()
     }
+
+    val CrackedIce: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "CrackedIce",
+            defaultWidth = 100.dp,
+            defaultHeight = 100.dp,
+            viewportWidth = 100f,
+            viewportHeight = 100f
+        ).path(
+            stroke = SolidColor(Color.White),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round
+        ) {
+            moveTo(10f, 10f)
+            lineTo(30f, 40f)
+            lineTo(20f, 60f)
+            lineTo(50f, 50f)
+            lineTo(80f, 90f)
+
+            moveTo(90f, 10f)
+            lineTo(70f, 30f)
+            lineTo(50f, 50f)
+            lineTo(40f, 80f)
+
+            moveTo(10f, 90f)
+            lineTo(40f, 70f)
+
+            moveTo(90f, 90f)
+            lineTo(60f, 60f)
+        }.build()
+    }
 }
