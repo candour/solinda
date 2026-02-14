@@ -266,4 +266,40 @@ class GameBoardTest {
         assertEquals(2, gem.posX)
         assertEquals(3, gem.posY)
     }
+
+    @Test
+    fun testFrostSwapRestriction() {
+        val board = GameBoard()
+        val grid = Array(GameBoard.HEIGHT) { y ->
+            Array<Gem?>(GameBoard.WIDTH) { x ->
+                val type = GemType.entries[(x % 3) + (y % 2) * 3]
+                Gem(type = type, posX = x, posY = y)
+            }
+        }
+        board.setGrid(grid)
+
+        // Setup a potential match
+        // Row 0: 0 1 2 0 1 2 ... -> 0 1 0 0 1 2 ...
+        // Swapping (0,0) with (1,0) -> 1 0 0 0 1 2 ... -> MATCH!
+        grid[0][0] = Gem(type = GemType.entries[0], posX = 0, posY = 0)
+        grid[0][1] = Gem(type = GemType.entries[1], posX = 1, posY = 0)
+        grid[0][2] = Gem(type = GemType.entries[0], posX = 2, posY = 0)
+        grid[0][3] = Gem(type = GemType.entries[0], posX = 3, posY = 0)
+
+        assertTrue("Should have a possible move without frost", board.hasPossibleMoves())
+
+        // Add frost to (0,0)
+        val frost = Array(GameBoard.HEIGHT) { IntArray(GameBoard.WIDTH) }
+        frost[0][0] = 1
+        board.setFrostLevels(frost)
+
+        assertFalse("Should not have a possible move with frosted source", board.hasPossibleMoves())
+
+        // Move frost to (0,1)
+        frost[0][0] = 0
+        frost[0][1] = 1
+        board.setFrostLevels(frost)
+
+        assertFalse("Should not have a possible move with frosted target", board.hasPossibleMoves())
+    }
 }

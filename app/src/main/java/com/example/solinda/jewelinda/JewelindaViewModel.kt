@@ -188,6 +188,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     fun onSwipe(x: Int, y: Int, direction: Direction) {
         if (_isProcessing.value) return
 
+        val board = _board.value
+        if (board.getFrostLevel(x, y) > 0) return
+
         val targetX = when (direction) {
             Direction.EAST -> x + 1
             Direction.WEST -> x - 1
@@ -200,6 +203,8 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         if (targetX in 0 until GameBoard.WIDTH && targetY in 0 until GameBoard.HEIGHT) {
+            if (board.getFrostLevel(targetX, targetY) > 0) return
+
             viewModelScope.launch {
                 processMove(y, x, targetY, targetX)
             }

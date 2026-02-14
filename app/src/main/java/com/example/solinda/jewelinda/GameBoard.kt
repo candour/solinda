@@ -138,6 +138,8 @@ class GameBoard {
     }
 
     private fun isSwapValid(x1: Int, y1: Int, x2: Int, y2: Int): Boolean {
+        if (getFrostLevel(x1, y1) > 0 || getFrostLevel(x2, y2) > 0) return false
+
         val gem1 = grid[y1][x1] ?: return false
         val gem2 = grid[y2][x2] ?: return false
         if (gem1.type == gem2.type) return false

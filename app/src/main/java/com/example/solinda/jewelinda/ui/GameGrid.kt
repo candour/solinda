@@ -120,16 +120,19 @@ fun GameGrid(
                                 val x = (offset.x / gemSizePx).toInt()
                                 val y = (offset.y / gemSizePx).toInt()
                                 if (x in 0 until GameBoard.WIDTH && y in 0 until GameBoard.HEIGHT) {
-                                    sourceGemCoords = Pair(x, y)
-                                    sourceGemId = board.getGem(x, y)?.id
-                                    targetGemId = null
-                                    dragTriggered = false
-                                    scope.launch { dragOffset.snapTo(Offset.Zero) }
+                                    if (board.getFrostLevel(x, y) == 0) {
+                                        sourceGemCoords = Pair(x, y)
+                                        sourceGemId = board.getGem(x, y)?.id
+                                        targetGemId = null
+                                        dragTriggered = false
+                                        scope.launch { dragOffset.snapTo(Offset.Zero) }
+                                    }
                                 }
                             }
                         },
                         onDrag = { _, dragAmount ->
-                            if (!isProcessing && sourceGemCoords != null && !dragTriggered) {
+                            val currentSourceCoords = sourceGemCoords
+                            if (!isProcessing && currentSourceCoords != null && !dragTriggered) {
                                 val gemSizePx = size.width.toFloat() / 8f
                                 val currentDrag = dragOffset.value + dragAmount
                                 val clampedDrag = Offset(
@@ -148,28 +151,46 @@ fun GameGrid(
                                 }
 
                                 val targetX = when (direction) {
-                                    Direction.EAST -> sourceGemCoords!!.first + 1
-                                    Direction.WEST -> sourceGemCoords!!.first - 1
-                                    else -> sourceGemCoords!!.first
+                                    Direction.EAST -> currentSourceCoords.first + 1
+                                    Direction.WEST -> currentSourceCoords.first - 1
+                                    else -> currentSourceCoords.first
                                 }
                                 val targetY = when (direction) {
-                                    Direction.SOUTH -> sourceGemCoords!!.second + 1
-                                    Direction.NORTH -> sourceGemCoords!!.second - 1
-                                    else -> sourceGemCoords!!.second
+                                    Direction.SOUTH -> currentSourceCoords.second + 1
+                                    Direction.NORTH -> currentSourceCoords.second - 1
+                                    else -> currentSourceCoords.second
                                 }
-                                targetGemId = board.getGem(targetX, targetY)?.id
+
+                                val isTargetInBounds = targetX in 0 until GameBoard.WIDTH && targetY in 0 until GameBoard.HEIGHT
+                                val isTargetFrosted = isTargetInBounds && board.getFrostLevel(targetX, targetY) > 0
+
+                                if (isTargetFrosted || !isTargetInBounds) {
+                                    targetGemId = null
+                                } else {
+                                    targetGemId = board.getGem(targetX, targetY)?.id
+                                }
 
                                 val threshold = 50f // pixels
                                 if (clampedDrag.getDistance() > threshold) {
-                                    if (isHapticsEnabled) {
-                                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                    }
-                                    viewModel.onSwipe(sourceGemCoords!!.first, sourceGemCoords!!.second, direction)
-                                    dragTriggered = true
-                                    scope.launch {
-                                        dragOffset.animateTo(Offset.Zero, SnappySpringOffset)
-                                        sourceGemId = null
-                                        targetGemId = null
+                                    if (isTargetFrosted || !isTargetInBounds) {
+                                        // Block the swipe
+                                        dragTriggered = true
+                                        scope.launch {
+                                            dragOffset.animateTo(Offset.Zero, SnappySpringOffset)
+                                            sourceGemId = null
+                                            targetGemId = null
+                                        }
+                                    } else {
+                                        if (isHapticsEnabled) {
+                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                        }
+                                        viewModel.onSwipe(currentSourceCoords.first, currentSourceCoords.second, direction)
+                                        dragTriggered = true
+                                        scope.launch {
+                                            dragOffset.animateTo(Offset.Zero, SnappySpringOffset)
+                                            sourceGemId = null
+                                            targetGemId = null
+                                        }
                                     }
                                 }
                             }
