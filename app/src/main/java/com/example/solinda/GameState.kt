@@ -16,7 +16,10 @@ data class GameState(
     val isHapticsEnabled: Boolean = true,
     val jewelindaBoardJson: String? = null,
     val jewelindaScore: Int = 0,
-    val jewelindaMoves: Int = 30
+    val jewelindaMoves: Int = 30,
+    val jewelindaLevelType: com.example.solinda.jewelinda.LevelType = com.example.solinda.jewelinda.LevelType.COLOR_COLLECTION,
+    val frostLevelJson: String? = null,
+    val objectiveProgressJson: String? = null
 )
 
 data class PileState(

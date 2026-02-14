@@ -21,8 +21,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.example.solinda.jewelinda.Direction
 import com.example.solinda.jewelinda.GameBoard
@@ -33,6 +44,34 @@ import com.example.solinda.jewelinda.getGemColor
 import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.math.roundToInt
+
+@Composable
+fun FrostTile(level: Int, size: Dp, x: Int, y: Int) {
+    if (level <= 0) return
+    val density = LocalDensity.current
+    val sizePx = with(density) { size.toPx() }
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .offset {
+                IntOffset((x * sizePx).roundToInt(), (y * sizePx).roundToInt())
+            }
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.3f))
+    ) {
+        if (level >= 2) {
+            Image(
+                imageVector = GemIcons.CrackedIce,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.5f))
+            )
+        }
+    }
+}
 
 @Composable
 fun GameGrid(
@@ -162,6 +201,19 @@ fun GameGrid(
                     )
                 }
         ) {
+            // Background Frost Layer
+            for (y in 0 until GameBoard.HEIGHT) {
+                for (x in 0 until GameBoard.WIDTH) {
+                    val frostLevel = board.getFrostLevel(x, y)
+                    if (frostLevel > 0) {
+                        key("frost_$x-$y") {
+                            FrostTile(level = frostLevel, size = gemSize, x = x, y = y)
+                        }
+                    }
+                }
+            }
+
+            // Gems Layer
             for (y in 0 until GameBoard.HEIGHT) {
                 for (x in 0 until GameBoard.WIDTH) {
                     board.getGem(x, y)?.let { gem ->

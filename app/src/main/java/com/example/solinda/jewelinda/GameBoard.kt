@@ -12,10 +12,15 @@ class GameBoard {
     }
 
     private var grid: Array<Array<Gem?>> = Array(HEIGHT) { arrayOfNulls<Gem>(WIDTH) }
+    private var frostLevels: Array<IntArray> = Array(HEIGHT) { IntArray(WIDTH) }
 
     // Internal for testing
     internal fun setGrid(newGrid: Array<Array<Gem?>>) {
         this.grid = newGrid
+    }
+
+    internal fun setFrostLevels(newFrost: Array<IntArray>) {
+        this.frostLevels = newFrost
     }
 
     fun copy(): GameBoard {
@@ -26,6 +31,12 @@ class GameBoard {
             }
         }
         newBoard.setGrid(newGrid)
+
+        val newFrost = Array(HEIGHT) { y ->
+            frostLevels[y].copyOf()
+        }
+        newBoard.setFrostLevels(newFrost)
+
         return newBoard
     }
 
@@ -38,11 +49,43 @@ class GameBoard {
         return grid.flatten().filterNotNull()
     }
 
+    fun getFrostLevelsFlattened(): Array<IntArray> {
+        return frostLevels
+    }
+
     fun loadGrid(gems: List<Gem>) {
         grid = Array(HEIGHT) { arrayOfNulls<Gem>(WIDTH) }
         gems.forEach { gem ->
             if (gem.posX in 0 until WIDTH && gem.posY in 0 until HEIGHT) {
                 grid[gem.posY][gem.posX] = gem
+            }
+        }
+    }
+
+    fun loadFrost(frost: Array<IntArray>) {
+        if (frost.size == HEIGHT && frost.all { it.size == WIDTH }) {
+            frostLevels = Array(HEIGHT) { y -> frost[y].copyOf() }
+        }
+    }
+
+    fun getFrostLevel(x: Int, y: Int): Int {
+        if (x !in 0 until WIDTH || y !in 0 until HEIGHT) return 0
+        return frostLevels[y][x]
+    }
+
+    fun decrementFrost(x: Int, y: Int): Boolean {
+        if (x in 0 until WIDTH && y in 0 until HEIGHT && frostLevels[y][x] > 0) {
+            frostLevels[y][x]--
+            return true
+        }
+        return false
+    }
+
+    fun initFrost() {
+        frostLevels = Array(HEIGHT) { IntArray(WIDTH) }
+        for (y in 2..5) {
+            for (x in 2..5) {
+                frostLevels[y][x] = 1
             }
         }
     }
