@@ -91,12 +91,13 @@ class GameBoard {
     }
 
     fun initBoard() {
+        val normalGems = GemType.entries.filter { it != GemType.HYPER }
         do {
             for (y in 0 until HEIGHT) {
                 for (x in 0 until WIDTH) {
                     var type: GemType
                     do {
-                        type = GemType.entries.random()
+                        type = normalGems.random()
                     } while (createsMatchAt(x, y, type))
                     grid[y][x] = Gem(type = type, posX = x, posY = y)
                 }
@@ -105,10 +106,15 @@ class GameBoard {
     }
 
     private fun createsMatchAt(x: Int, y: Int, type: GemType): Boolean {
+        fun isMatch(t1: GemType, t2: GemType?): Boolean {
+            if (t2 == null) return false
+            if (t1 == GemType.HYPER || t2 == GemType.HYPER) return true
+            return t1 == t2
+        }
         // Check horizontal match (to the left)
-        if (x >= 2 && grid[y][x - 1]?.type == type && grid[y][x - 2]?.type == type) return true
+        if (x >= 2 && isMatch(type, grid[y][x - 1]?.type) && isMatch(type, grid[y][x - 2]?.type)) return true
         // Check vertical match (upwards)
-        if (y >= 2 && grid[y - 1][x]?.type == type && grid[y - 2][x]?.type == type) return true
+        if (y >= 2 && isMatch(type, grid[y - 1][x]?.type) && isMatch(type, grid[y - 2][x]?.type)) return true
         return false
     }
 
@@ -142,6 +148,10 @@ class GameBoard {
 
         val gem1 = grid[y1][x1] ?: return false
         val gem2 = grid[y2][x2] ?: return false
+
+        // Do not allow swapping two hypergems
+        if (gem1.type == GemType.HYPER && gem2.type == GemType.HYPER) return false
+
         if (gem1.type == gem2.type) return false
 
         // Perform temporary swap
@@ -158,35 +168,59 @@ class GameBoard {
     }
 
     private fun hasMatchAt(x: Int, y: Int): Boolean {
-        val type = grid[y][x]?.type ?: return false
+        val gemType = grid[y][x]?.type ?: return false
+        val colorsToCheck = if (gemType == GemType.HYPER) {
+            GemType.entries.filter { it != GemType.HYPER }
+        } else {
+            listOf(gemType)
+        }
 
-        // Horizontal check
-        var horizontalCount = 1
-        var ix = x - 1
-        while (ix >= 0 && grid[y][ix]?.type == type) {
-            horizontalCount++
-            ix--
-        }
-        ix = x + 1
-        while (ix < WIDTH && grid[y][ix]?.type == type) {
-            horizontalCount++
-            ix++
-        }
-        if (horizontalCount >= 3) return true
+        for (type in colorsToCheck) {
+            // Horizontal check
+            var horizontalCount = 1
+            var ix = x - 1
+            while (ix >= 0 && (grid[y][ix]?.type == type || grid[y][ix]?.type == GemType.HYPER)) {
+                horizontalCount++
+                ix--
+            }
+            ix = x + 1
+            while (ix < WIDTH && (grid[y][ix]?.type == type || grid[y][ix]?.type == GemType.HYPER)) {
+                horizontalCount++
+                ix++
+            }
+            if (horizontalCount >= 3) return true
 
-        // Vertical check
-        var verticalCount = 1
-        var iy = y - 1
-        while (iy >= 0 && grid[iy][x]?.type == type) {
-            verticalCount++
-            iy--
+            // Vertical check
+            var verticalCount = 1
+            var iy = y - 1
+            while (iy >= 0 && (grid[iy][x]?.type == type || grid[iy][x]?.type == GemType.HYPER)) {
+                verticalCount++
+                iy--
+            }
+            iy = y + 1
+            while (iy < HEIGHT && (grid[iy][x]?.type == type || grid[iy][x]?.type == GemType.HYPER)) {
+                verticalCount++
+                iy++
+            }
+            if (verticalCount >= 3) return true
         }
-        iy = y + 1
-        while (iy < HEIGHT && grid[iy][x]?.type == type) {
-            verticalCount++
-            iy++
+
+        // Special case: 3 or more Hypergems in a row
+        if (gemType == GemType.HYPER) {
+            var hCount = 1
+            var ix = x - 1
+            while (ix >= 0 && grid[y][ix]?.type == GemType.HYPER) { hCount++; ix-- }
+            ix = x + 1
+            while (ix < WIDTH && grid[y][ix]?.type == GemType.HYPER) { hCount++; ix++ }
+            if (hCount >= 3) return true
+
+            var vCount = 1
+            var iy = y - 1
+            while (iy >= 0 && grid[iy][x]?.type == GemType.HYPER) { vCount++; iy-- }
+            iy = y + 1
+            while (iy < HEIGHT && grid[iy][x]?.type == GemType.HYPER) { vCount++; iy++ }
+            if (vCount >= 3) return true
         }
-        if (verticalCount >= 3) return true
 
         return false
     }
@@ -205,46 +239,56 @@ class GameBoard {
 
     fun findAllMatchGroups(): List<MatchGroup> {
         val groups = mutableListOf<MatchGroup>()
-        // Horizontal
-        for (y in 0 until HEIGHT) {
-            var x = 0
-            while (x < WIDTH) {
-                val type = grid[y][x]?.type
-                if (type != null) {
-                    var count = 1
-                    while (x + count < WIDTH && grid[y][x + count]?.type == type) {
-                        count++
+        val normalGems = GemType.entries.filter { it != GemType.HYPER }
+
+        fun findSegments(isHorizontal: Boolean) {
+            val primary = if (isHorizontal) HEIGHT else WIDTH
+            val secondary = if (isHorizontal) WIDTH else HEIGHT
+
+            for (p in 0 until primary) {
+                for (type in normalGems + GemType.HYPER) {
+                    var s = 0
+                    while (s < secondary) {
+                        val x = if (isHorizontal) s else p
+                        val y = if (isHorizontal) p else s
+                        val gem = grid[y][x]
+
+                        if (gem != null && (gem.type == type || (type != GemType.HYPER && gem.type == GemType.HYPER))) {
+                            var count = 1
+                            while (s + count < secondary) {
+                                val nx = if (isHorizontal) s + count else p
+                                val ny = if (isHorizontal) p else s + count
+                                val ngem = grid[ny][nx]
+                                if (ngem != null && (ngem.type == type || (type != GemType.HYPER && ngem.type == GemType.HYPER))) {
+                                    count++
+                                } else break
+                            }
+
+                            if (count >= 3) {
+                                val gems = (0 until count).map {
+                                    if (isHorizontal) (s + it) to p else p to (s + it)
+                                }
+                                if (type == GemType.HYPER) {
+                                    if (gems.all { grid[it.second][it.first]?.type == GemType.HYPER }) {
+                                        groups.add(MatchGroup(gems, type))
+                                    }
+                                } else {
+                                    if (gems.any { grid[it.second][it.first]?.type == type }) {
+                                        groups.add(MatchGroup(gems, type))
+                                    }
+                                }
+                            }
+                            s += count
+                        } else {
+                            s++
+                        }
                     }
-                    if (count >= 3) {
-                        val gems = (0 until count).map { Pair(x + it, y) }
-                        groups.add(MatchGroup(gems, type))
-                    }
-                    x += count
-                } else {
-                    x++
                 }
             }
         }
-        // Vertical
-        for (x in 0 until WIDTH) {
-            var y = 0
-            while (y < HEIGHT) {
-                val type = grid[y][x]?.type
-                if (type != null) {
-                    var count = 1
-                    while (y + count < HEIGHT && grid[y + count][x]?.type == type) {
-                        count++
-                    }
-                    if (count >= 3) {
-                        val gems = (0 until count).map { Pair(x, y + it) }
-                        groups.add(MatchGroup(gems, type))
-                    }
-                    y += count
-                } else {
-                    y++
-                }
-            }
-        }
+
+        findSegments(true)
+        findSegments(false)
         return groups
     }
 
@@ -277,6 +321,10 @@ class GameBoard {
         grid[y][x] = Gem(type = type, posX = x, posY = y, isBomb = true)
     }
 
+    fun setHyper(x: Int, y: Int) {
+        grid[y][x] = Gem(type = GemType.HYPER, posX = x, posY = y)
+    }
+
     fun shiftGemsDown() {
         for (x in 0 until WIDTH) {
             var emptyRow = HEIGHT - 1
@@ -293,16 +341,18 @@ class GameBoard {
     }
 
     fun refillBoard(fromTop: Boolean = false) {
+        val normalGems = GemType.entries.filter { it != GemType.HYPER }
         for (x in 0 until WIDTH) {
             for (y in 0 until HEIGHT) {
                 if (grid[y][x] == null) {
-                    grid[y][x] = Gem(type = GemType.entries.random(), posX = x, posY = if (fromTop) -1 else y)
+                    grid[y][x] = Gem(type = normalGems.random(), posX = x, posY = if (fromTop) -1 else y)
                 }
             }
         }
     }
 
     fun refillAndPrepareFall() {
+        val normalGems = GemType.entries.filter { it != GemType.HYPER }
         for (x in 0 until WIDTH) {
             // 1. Shift existing gems down in grid, but keep their current posY
             var emptyRow = HEIGHT - 1
@@ -322,7 +372,7 @@ class GameBoard {
             // We fill from bottom-most empty row to top empty row
             for (y in emptyRow downTo 0) {
                 grid[y][x] = Gem(
-                    type = GemType.entries.random(),
+                    type = normalGems.random(),
                     posX = x,
                     posY = nextNewPosY--
                 )

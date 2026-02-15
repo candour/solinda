@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import java.util.UUID
 
 enum class GemType {
-    RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE
+    RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE, HYPER
 }
 
 data class Gem(
@@ -23,5 +23,6 @@ fun getGemColor(type: GemType): Color {
         GemType.YELLOW -> Color.Yellow
         GemType.PURPLE -> Color.Magenta
         GemType.ORANGE -> Color(0xFFFFA500)
+        GemType.HYPER -> Color.White
     }
 }

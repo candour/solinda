@@ -1,5 +1,6 @@
 package com.example.solinda.jewelinda.ui
 
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,7 @@ fun getGemIcon(type: GemType): ImageVector {
         GemType.YELLOW -> GemIcons.Hexagon
         GemType.PURPLE -> GemIcons.Triangle
         GemType.ORANGE -> GemIcons.Star
+        GemType.HYPER -> GemIcons.Hyper
     }
 }
 
@@ -82,12 +84,37 @@ fun GemComponent(
         label = "scaleY"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "bombPulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "gemAnimations")
     val pulse by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.15f,
         animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse),
         label = "pulse"
+    )
+
+    val hyperRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing)),
+        label = "hyperRotation"
+    )
+
+    val hyperColor by infiniteTransition.animateColor(
+        initialValue = Color.Red,
+        targetValue = Color.Red,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3000
+                Color.Red at 0
+                Color.Yellow at 500
+                Color.Green at 1000
+                Color.Cyan at 1500
+                Color.Blue at 2000
+                Color.Magenta at 2500
+                Color.Red at 3000
+            }
+        ),
+        label = "hyperColor"
     )
 
     val animatedOffset by animateIntOffsetAsState(
@@ -112,8 +139,9 @@ fun GemComponent(
                 )
             }
             .graphicsLayer {
-                this.scaleX = scaleX * if (gem.isBomb) pulse else 1f
-                this.scaleY = scaleY * if (gem.isBomb) pulse else 1f
+                this.scaleX = scaleX * if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
+                this.scaleY = scaleY * if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
+                this.rotationZ = if (gem.type == GemType.HYPER) hyperRotation else 0f
                 this.transformOrigin = TransformOrigin(0.5f, 1f)
             }
             .padding(4.dp)
@@ -135,7 +163,7 @@ fun GemComponent(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier
-                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .fillMaxSize(if (gem.isBomb || gem.type == GemType.HYPER) 0.8f else 1f)
                 .align(Alignment.Center)
                 .offset(x = 2.dp, y = 2.dp),
             colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.3f))
@@ -146,9 +174,9 @@ fun GemComponent(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier
-                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .fillMaxSize(if (gem.isBomb || gem.type == GemType.HYPER) 0.8f else 1f)
                 .align(Alignment.Center),
-            colorFilter = ColorFilter.tint(getGemColor(gem.type))
+            colorFilter = ColorFilter.tint(if (gem.type == GemType.HYPER) hyperColor else getGemColor(gem.type))
         )
 
         // Highlight Layer (Glint)
@@ -156,7 +184,7 @@ fun GemComponent(
             imageVector = GemIcons.Glint,
             contentDescription = null,
             modifier = Modifier
-                .fillMaxSize(if (gem.isBomb) 0.8f else 1f)
+                .fillMaxSize(if (gem.isBomb || gem.type == GemType.HYPER) 0.8f else 1f)
                 .align(Alignment.Center),
             colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.4f))
         )
