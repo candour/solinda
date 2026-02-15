@@ -151,7 +151,8 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         if (type == LevelType.COLOR_COLLECTION || type == LevelType.HYBRID) {
-            val colors = GemType.entries.shuffled().take(2)
+            val normalGems = GemType.entries.filter { it != GemType.HYPER }
+            val colors = normalGems.shuffled().take(2)
             _objectives.value = colors.associateWith { 25 }
         } else {
             _objectives.value = emptyMap()
@@ -230,24 +231,60 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 val matchGroups = boardCopy.findAllMatchGroups()
                 val matchedCoords = matchGroups.flatMap { it.gems }.toSet()
 
-                // Identify bombs to be created
+                // Identify bombs and hypergems to be created
                 val newBombs = mutableListOf<Triple<Int, Int, GemType>>()
-                for (group in matchGroups) {
-                    if (group.gems.size >= 4) {
+                val newHyperGems = mutableListOf<Pair<Int, Int>>()
+                val gemsInFiveMatch = mutableSetOf<Pair<Int, Int>>()
+
+                val colorToGroups = matchGroups.groupBy { it.type }
+                for ((type, groups) in colorToGroups) {
+                    if (type == GemType.HYPER) continue
+                    val allGemsInColor = groups.flatMap { it.gems }.toSet()
+                    if (allGemsInColor.size >= 5) {
+                        gemsInFiveMatch.addAll(allGemsInColor)
+                        val gemCounts = groups.flatMap { it.gems }.groupingBy { it }.eachCount()
+                        val intersection = gemCounts.filter { it.value > 1 }.keys.firstOrNull()
+                        val hyperPos = intersection ?: groups.maxBy { it.gems.size }.gems.let { it[it.size / 2] }
+                        newHyperGems.add(hyperPos)
+                    } else if (groups.any { it.gems.size >= 4 }) {
+                        val group = groups.first { it.gems.size >= 4 }
                         val bombPos = if (isInitialMove && group.gems.contains(swapTarget)) {
                             swapTarget
                         } else {
-                            group.gems.minWithOrNull(compareBy({ it.second }, { it.first }))!!
+                            group.gems[group.gems.size / 2]
                         }
-                        newBombs.add(Triple(bombPos.first, bombPos.second, group.type))
+                        newBombs.add(Triple(bombPos.first, bombPos.second, type))
                     }
                 }
 
-                // Identify triggered bombs (matched bombs or hit by explosion)
+                // Identify triggered bombs and hypergems
                 val allClearedCoords = matchedCoords.toMutableSet()
                 val bombsToTrigger = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.isBomb == true }.toMutableList()
-                val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
 
+                // Hypergem Activation
+                val hyperGemsInMatch = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.type == GemType.HYPER }
+                val colorsToMassBomb = mutableSetOf<GemType>()
+                for (hCoord in hyperGemsInMatch) {
+                    val groupsWithHyper = matchGroups.filter { it.gems.contains(hCoord) && it.type != GemType.HYPER }
+                    colorsToMassBomb.addAll(groupsWithHyper.map { it.type })
+                }
+
+                if (colorsToMassBomb.isNotEmpty()) {
+                    for (color in colorsToMassBomb) {
+                        for (y in 0 until GameBoard.HEIGHT) {
+                            for (x in 0 until GameBoard.WIDTH) {
+                                val gem = boardCopy.getGem(x, y)
+                                if (gem != null && gem.type == color) {
+                                    allClearedCoords.add(x to y)
+                                    boardCopy.setBomb(x, y, color)
+                                    bombsToTrigger.add(x to y)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
                 var bIdx = 0
                 while (bIdx < bombsToTrigger.size) {
                     val (bx, by) = bombsToTrigger[bIdx]
@@ -257,9 +294,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                         for (coord in area) {
                             val gem = boardCopy.getGem(coord.first, coord.second)
                             if (gem != null) {
-                                if (allClearedCoords.add(coord)) {
-                                    // Gem cleared by explosion
-                                }
+                                allClearedCoords.add(coord)
                                 if (gem.isBomb && !triggeredBombs.contains(coord)) {
                                     bombsToTrigger.add(coord)
                                 }
@@ -291,15 +326,22 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
                 _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size, frostClearedInThisStep))
 
-                val clearedCount = allClearedCoords.size
+                var points = 0
+                for (coord in allClearedCoords) {
+                    points += if (gemsInFiveMatch.contains(coord)) 100 else 50
+                }
+                _score.value += points * multiplier
+
                 boardCopy.removeGems(allClearedCoords)
 
                 // Place new bombs
                 for ((bx, by, bType) in newBombs) {
                     boardCopy.setBomb(bx, by, bType)
                 }
-
-                _score.value += clearedCount * 50 * multiplier
+                // Place new hypergems
+                for (hPos in newHyperGems) {
+                    boardCopy.setHyper(hPos.first, hPos.second)
+                }
                 _board.value = boardCopy.copy()
                 delay(400)
 

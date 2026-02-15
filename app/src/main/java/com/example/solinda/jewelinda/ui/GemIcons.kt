@@ -184,6 +184,41 @@ object GemIcons {
         }.build()
     }
 
+    val Hyper: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Hyper",
+            defaultWidth = 100.dp,
+            defaultHeight = 100.dp,
+            viewportWidth = 100f,
+            viewportHeight = 100f
+        ).path(
+            fill = SolidColor(Color.Black),
+            pathFillType = PathFillType.EvenOdd
+        ) {
+            // A complex 12-pointed star-like shape
+            moveTo(50f, 5f)
+            lineTo(58f, 35f)
+            lineTo(93f, 25f)
+            lineTo(68f, 50f)
+            lineTo(93f, 75f)
+            lineTo(58f, 65f)
+            lineTo(50f, 95f)
+            lineTo(42f, 65f)
+            lineTo(7f, 75f)
+            lineTo(32f, 50f)
+            lineTo(7f, 25f)
+            lineTo(42f, 35f)
+            close()
+
+            // Inner star
+            moveTo(50f, 25f)
+            lineTo(65f, 50f)
+            lineTo(50f, 75f)
+            lineTo(35f, 50f)
+            close()
+        }.build()
+    }
+
     val CrackedIce: ImageVector by lazy {
         ImageVector.Builder(
             name = "CrackedIce",
