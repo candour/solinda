@@ -391,3 +391,31 @@ fun LandscapeLayout(
         }
     }
 }
+
+@Composable
+fun ParticleOverlay(engine: ParticleEngine) {
+    // 4. The Game Loop
+    // Updates physics every frame (16ms)
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { 
+                engine.update(1f) // 1 step per frame
+            }
+        }
+    }
+
+    // 5. The Rendering Layer
+    // Skips recomposition, just redraws the canvas
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        engine.particles.forEach { p ->
+            if (p.alpha > 0f) {
+                drawCircle(
+                    color = p.color.copy(alpha = p.alpha),
+                    radius = p.size,
+                    center = Offset(p.x, p.y)
+                )
+            }
+        }
+    }
+}
+
