@@ -25,3 +25,41 @@ class FastParticle(
         size = Random.nextFloat() * 15f + 5f
     }
 }
+
+class ParticleEngine {
+    // 2. The Object Pool
+    // Reuse these objects! Never delete them, just hide them.
+    private val maxParticles = 150 
+    val particles = mutableStateListOf<FastParticle>().apply {
+        repeat(maxParticles) { add(FastParticle().apply { alpha = 0f }) }
+    }
+
+    fun spawnBurst(x: Float, y: Float, color: Color) {
+        // Find 10-15 "dead" particles (alpha <= 0) and revive them
+        var spawned = 0
+        for (p in particles) {
+            if (p.alpha <= 0f) {
+                p.reset(x, y, color)
+                spawned++
+            }
+            if (spawned >= 12) break // Hard limit per burst
+        }
+    }
+
+    fun update(dt: Float) {
+        // 3. The Physics Loop (No allocations here!)
+        val gravity = 0.5f
+        val decay = 0.02f
+        
+        particles.forEach { p ->
+            if (p.alpha > 0f) {
+                p.x += p.vx
+                p.y += p.vy
+                p.vy += gravity // Gravity
+                p.alpha -= decay // Fade out
+                if (p.alpha < 0f) p.alpha = 0f
+            }
+        }
+    }
+}
+
