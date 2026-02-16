@@ -39,7 +39,7 @@ import com.example.solinda.jewelinda.Direction
 import com.example.solinda.jewelinda.GameBoard
 import com.example.solinda.jewelinda.JewelindaEvent
 import com.example.solinda.jewelinda.JewelindaViewModel
-import com.example.solinda.jewelinda.ParticleViewModel
+import com.example.solinda.jewelinda.ParticleEngine
 import com.example.solinda.jewelinda.getGemColor
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -76,7 +76,7 @@ fun FrostTile(level: Int, size: Dp, x: Int, y: Int) {
 @Composable
 fun GameGrid(
     viewModel: JewelindaViewModel,
-    particleViewModel: ParticleViewModel,
+    particleEngine: ParticleEngine,
     isHapticsEnabled: Boolean
 ) {
     val board by viewModel.board.collectAsState()
@@ -94,7 +94,7 @@ fun GameGrid(
                     val gemSizePx = with(density) { gemSize.toPx() }
                     val centerX = (event.x + 0.5f) * gemSizePx
                     val centerY = (event.y + 0.5f) * gemSizePx
-                    particleViewModel.spawnBurst(centerX, centerY, getGemColor(event.type))
+                    particleEngine.spawnBurst(centerX, centerY, getGemColor(event.type), gemSizePx)
                 }
             }
         }
@@ -254,7 +254,7 @@ fun GameGrid(
                     }
                 }
             }
-            ParticleLayer(viewModel = particleViewModel, gemSize = gemSize)
+            ParticleOverlay(engine = particleEngine)
         }
     }
 }

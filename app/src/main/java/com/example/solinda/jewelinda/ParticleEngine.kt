@@ -1,6 +1,10 @@
+package com.example.solinda.jewelinda
+
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlin.random.Random
 
 // 1. Mutable Data Class (Vital for performance)
@@ -14,7 +18,7 @@ class FastParticle(
     var color: Color = Color.White,
     var size: Float = 10f
 ) {
-    fun reset(startX: Float, startY: Float, color: Color) {
+    fun reset(startX: Float, startY: Float, color: Color, size: Float) {
         x = startX
         y = startY
         // Random velocity (Explosion effect)
@@ -22,7 +26,7 @@ class FastParticle(
         vy = Random.nextFloat() * 10f - 15f // Upward bias
         alpha = 1f
         this.color = color
-        size = Random.nextFloat() * 15f + 5f
+        this.size = size
     }
 }
 
@@ -34,12 +38,17 @@ class ParticleEngine {
         repeat(maxParticles) { add(FastParticle().apply { alpha = 0f }) }
     }
 
-    fun spawnBurst(x: Float, y: Float, color: Color) {
-        // Find 10-15 "dead" particles (alpha <= 0) and revive them
+    // Force redraw without full recomposition
+    var tick by mutableLongStateOf(0L)
+        private set
+
+    fun spawnBurst(x: Float, y: Float, color: Color, gemSizePx: Float) {
+        // Find 12 "dead" particles (alpha <= 0) and revive them
         var spawned = 0
         for (p in particles) {
             if (p.alpha <= 0f) {
-                p.reset(x, y, color)
+                val size = (gemSizePx * 0.1f) * Random.nextFloat()
+                p.reset(x, y, color, size)
                 spawned++
             }
             if (spawned >= 12) break // Hard limit per burst
@@ -51,6 +60,7 @@ class ParticleEngine {
         val gravity = 0.5f
         val decay = 0.02f
         
+        var hasActiveParticles = false
         particles.forEach { p ->
             if (p.alpha > 0f) {
                 p.x += p.vx
@@ -58,8 +68,12 @@ class ParticleEngine {
                 p.vy += gravity // Gravity
                 p.alpha -= decay // Fade out
                 if (p.alpha < 0f) p.alpha = 0f
+                hasActiveParticles = true
             }
+        }
+
+        if (hasActiveParticles) {
+            tick++
         }
     }
 }
-

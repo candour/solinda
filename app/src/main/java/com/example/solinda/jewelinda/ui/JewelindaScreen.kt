@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.Canvas
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +33,7 @@ import com.example.solinda.jewelinda.GemType
 import com.example.solinda.jewelinda.JewelindaEvent
 import com.example.solinda.jewelinda.JewelindaViewModel
 import com.example.solinda.jewelinda.LevelType
-import com.example.solinda.jewelinda.ParticleViewModel
+import com.example.solinda.jewelinda.ParticleEngine
 import com.example.solinda.jewelinda.getGemColor
 
 @Composable
@@ -110,7 +111,7 @@ fun JewelindaScreen(
     val moves by viewModel.movesRemaining.collectAsState()
     val levelType by viewModel.levelType.collectAsState()
     val objectives by viewModel.objectives.collectAsState()
-    val particleViewModel: ParticleViewModel = viewModel()
+    val particleEngine = remember { ParticleEngine() }
     val view = LocalView.current
     val density = LocalDensity.current
 
@@ -170,7 +171,7 @@ fun JewelindaScreen(
                     objectives = objectives,
                     board = board,
                     viewModel = viewModel,
-                    particleViewModel = particleViewModel,
+                    particleEngine = particleEngine,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
                     shakeOffset = shakeOffset,
                     onOptionsClick = onOptionsClick
@@ -183,7 +184,7 @@ fun JewelindaScreen(
                     objectives = objectives,
                     board = board,
                     viewModel = viewModel,
-                    particleViewModel = particleViewModel,
+                    particleEngine = particleEngine,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
                     shakeOffset = shakeOffset,
                     onOptionsClick = onOptionsClick
@@ -209,7 +210,7 @@ fun PortraitLayout(
     objectives: Map<GemType, Int>,
     board: GameBoard,
     viewModel: JewelindaViewModel,
-    particleViewModel: ParticleViewModel,
+    particleEngine: ParticleEngine,
     isHapticsEnabled: Boolean,
     shakeOffset: Offset,
     onOptionsClick: () -> Unit
@@ -294,7 +295,7 @@ fun PortraitLayout(
         ) {
             GameGrid(
                 viewModel = viewModel,
-                particleViewModel = particleViewModel,
+                particleEngine = particleEngine,
                 isHapticsEnabled = isHapticsEnabled
             )
         }
@@ -309,7 +310,7 @@ fun LandscapeLayout(
     objectives: Map<GemType, Int>,
     board: GameBoard,
     viewModel: JewelindaViewModel,
-    particleViewModel: ParticleViewModel,
+    particleEngine: ParticleEngine,
     isHapticsEnabled: Boolean,
     shakeOffset: Offset,
     onOptionsClick: () -> Unit
@@ -359,7 +360,7 @@ fun LandscapeLayout(
             ) {
                 GameGrid(
                     viewModel = viewModel,
-                    particleViewModel = particleViewModel,
+                    particleEngine = particleEngine,
                     isHapticsEnabled = isHapticsEnabled
                 )
             }
@@ -393,12 +394,12 @@ fun LandscapeLayout(
 }
 
 @Composable
-fun ParticleOverlay(engine: ParticleEngine) {
+fun BoxScope.ParticleOverlay(engine: ParticleEngine) {
     // 4. The Game Loop
     // Updates physics every frame (16ms)
     LaunchedEffect(Unit) {
         while (true) {
-            withFrameNanos { 
+            withFrameNanos {
                 engine.update(1f) // 1 step per frame
             }
         }
@@ -406,7 +407,8 @@ fun ParticleOverlay(engine: ParticleEngine) {
 
     // 5. The Rendering Layer
     // Skips recomposition, just redraws the canvas
-    Canvas(modifier = Modifier.fillMaxSize()) {
+    Canvas(modifier = Modifier.matchParentSize()) {
+        val _tick = engine.tick // Read tick to force redraw
         engine.particles.forEach { p ->
             if (p.alpha > 0f) {
                 drawCircle(
