@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels()
     private val jewelindaViewModel: JewelindaViewModel by viewModels()
+    private lateinit var frameLayout: FrameLayout
     private lateinit var gameView: GameView
     private lateinit var jewelindaComposeView: ComposeView
     private lateinit var newGameButton: Button
@@ -39,10 +40,9 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
         viewModel.loadGame(prefs)
 
-        val frameLayout = FrameLayout(this)
+        frameLayout = FrameLayout(this)
 
         gameView = GameView(this, viewModel)
-        frameLayout.addView(gameView)
 
         jewelindaComposeView = ComposeView(this).apply {
             jewelindaViewModel.soundManager = object : com.example.solinda.jewelinda.SoundManager {
@@ -58,7 +58,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        frameLayout.addView(jewelindaComposeView)
 
         newGameButton = Button(this).apply {
             text = "New Game"
@@ -79,7 +78,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        frameLayout.addView(newGameButton)
 
         optionsButton = Button(this).apply {
             text = "Options"
@@ -95,23 +93,20 @@ class MainActivity : ComponentActivity() {
                 showOptionsDialog()
             }
         }
-        frameLayout.addView(optionsButton)
 
         setContentView(frameLayout)
         updateGameVisibility()
     }
 
     private fun updateGameVisibility() {
+        frameLayout.removeAllViews()
         if (viewModel.gameType == GameType.JEWELINDA) {
-            gameView.visibility = View.GONE
-            jewelindaComposeView.visibility = View.VISIBLE
-            newGameButton.visibility = View.GONE
-            optionsButton.visibility = View.GONE
+            frameLayout.addView(jewelindaComposeView)
         } else {
-            gameView.visibility = View.VISIBLE
-            jewelindaComposeView.visibility = View.GONE
-            newGameButton.visibility = View.VISIBLE
-            optionsButton.visibility = View.VISIBLE
+            frameLayout.addView(gameView)
+            frameLayout.addView(newGameButton)
+            frameLayout.addView(optionsButton)
+            gameView.invalidate()
         }
     }
 

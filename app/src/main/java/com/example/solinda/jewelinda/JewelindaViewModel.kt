@@ -6,8 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.solinda.GameState
 import com.example.solinda.GameType
-import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +56,8 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     private val _events = MutableSharedFlow<JewelindaEvent>()
     val events: SharedFlow<JewelindaEvent> = _events.asSharedFlow()
 
+    private var moveJob: Job? = null
+
     init {
         loadGame()
     }
@@ -63,10 +65,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     fun saveGame() {
         val prefs = getApplication<Application>().getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
         val json = prefs.getString("game_state", null)
-        val gson = Gson()
         val gameState = if (json != null) {
             try {
-                gson.fromJson(json, GameState::class.java)
+                GameState.gson.fromJson(json, GameState::class.java)
             } catch (e: Exception) {
                 createDefaultGameState()
             }
@@ -74,9 +75,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
             createDefaultGameState()
         }
 
-        val boardJson = gson.toJson(_board.value.getGridFlattened())
-        val frostJson = gson.toJson(_board.value.getFrostLevelsFlattened())
-        val objectiveJson = gson.toJson(_objectives.value)
+        val boardJson = GameState.gson.toJson(_board.value.getGridFlattened())
+        val frostJson = GameState.gson.toJson(_board.value.getFrostLevelsFlattened())
+        val objectiveJson = GameState.gson.toJson(_objectives.value)
 
         val updatedGameState = gameState.copy(
             jewelindaBoardJson = boardJson,
@@ -87,7 +88,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
             objectiveProgressJson = objectiveJson
         )
 
-        prefs.edit().putString("game_state", gson.toJson(updatedGameState)).apply()
+        prefs.edit().putString("game_state", GameState.gson.toJson(updatedGameState)).apply()
     }
 
     fun loadGame() {
@@ -95,17 +96,16 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         val json = prefs.getString("game_state", null)
         if (json != null) {
             try {
-                val gson = Gson()
-                val gameState = gson.fromJson(json, GameState::class.java)
+                val gameState = GameState.gson.fromJson(json, GameState::class.java)
                 val boardJson = gameState.jewelindaBoardJson
                 if (boardJson != null) {
                     val gemListType = object : TypeToken<List<Gem>>() {}.type
-                    val gems: List<Gem> = gson.fromJson(boardJson, gemListType)
+                    val gems: List<Gem> = GameState.gson.fromJson(boardJson, gemListType)
                     val loadedBoard = GameBoard()
                     loadedBoard.loadGrid(gems)
 
                     gameState.frostLevelJson?.let { fJson ->
-                        val frost: Array<IntArray> = gson.fromJson(fJson, Array<IntArray>::class.java)
+                        val frost: Array<IntArray> = GameState.gson.fromJson(fJson, Array<IntArray>::class.java)
                         loadedBoard.loadFrost(frost)
                     }
 
@@ -116,7 +116,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
                     gameState.objectiveProgressJson?.let { oJson ->
                         val objType = object : TypeToken<Map<GemType, Int>>() {}.type
-                        val objectives: Map<GemType, Int> = gson.fromJson(oJson, objType)
+                        val objectives: Map<GemType, Int> = GameState.gson.fromJson(oJson, objType)
                         _objectives.value = objectives
                     }
                     return
@@ -206,7 +206,8 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         if (targetX in 0 until GameBoard.WIDTH && targetY in 0 until GameBoard.HEIGHT) {
             if (board.getFrostLevel(targetX, targetY) > 0) return
 
-            viewModelScope.launch {
+            moveJob?.cancel()
+            moveJob = viewModelScope.launch {
                 processMove(y, x, targetY, targetX)
             }
         }
@@ -215,15 +216,16 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun processMove(row1: Int, col1: Int, row2: Int, col2: Int) {
         if (_movesRemaining.value <= 0) return
         _isProcessing.value = true
-        _isGravityEnabled.value = false
+        try {
+            _isGravityEnabled.value = false
 
-        val swapTarget = Pair(col2, row2)
-        val boardCopy = _board.value.copy()
-        boardCopy.swapGems(col1, row1, col2, row2)
-        _board.value = boardCopy
-        delay(600)
+            val swapTarget = Pair(col2, row2)
+            val boardCopy = _board.value.copy()
+            boardCopy.swapGems(col1, row1, col2, row2)
+            _board.value = boardCopy
+            delay(600)
 
-        if (boardCopy.hasAnyMatch()) {
+            if (boardCopy.hasAnyMatch()) {
             _movesRemaining.value -= 1
             var multiplier = 1
             var isInitialMove = true
@@ -358,22 +360,23 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                 isInitialMove = false
             }
 
-            // Check if shuffle needed
-            if (!boardCopy.hasPossibleMoves()) {
-                delay(500)
-                boardCopy.shuffleBoard()
-                _events.emit(JewelindaEvent.Shuffle)
+                // Check if shuffle needed
+                if (!boardCopy.hasPossibleMoves()) {
+                    delay(500)
+                    boardCopy.shuffleBoard()
+                    _events.emit(JewelindaEvent.Shuffle)
+                    _board.value = boardCopy.copy()
+                    delay(600)
+                }
+                saveGame()
+            } else {
+                // Swap back
+                boardCopy.swapGems(col1, row1, col2, row2)
                 _board.value = boardCopy.copy()
                 delay(600)
             }
-            saveGame()
-        } else {
-            // Swap back
-            boardCopy.swapGems(col1, row1, col2, row2)
-            _board.value = boardCopy.copy()
-            delay(600)
+        } finally {
+            _isProcessing.value = false
         }
-
-        _isProcessing.value = false
     }
 }

@@ -396,11 +396,15 @@ fun LandscapeLayout(
 @Composable
 fun BoxScope.ParticleOverlay(engine: ParticleEngine) {
     // 4. The Game Loop
-    // Updates physics every frame (16ms)
-    LaunchedEffect(Unit) {
-        while (true) {
-            withFrameNanos {
-                engine.update(1f) // 1 step per frame
+    // Updates physics every frame (16ms) only when active
+    LaunchedEffect(engine) {
+        engine.isActive.collect { active ->
+            if (active) {
+                while (engine.isActive.value) {
+                    withFrameNanos {
+                        engine.update(1f) // 1 step per frame
+                    }
+                }
             }
         }
     }
