@@ -2,7 +2,6 @@ package com.example.solinda
 
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
-import com.google.gson.Gson
 
 class GameViewModel : ViewModel() {
 
@@ -200,10 +199,9 @@ class GameViewModel : ViewModel() {
 
     fun saveGame(prefs: SharedPreferences) {
         val json = prefs.getString("game_state", null)
-        val gson = Gson()
         val existingGameState = if (json != null) {
             try {
-                gson.fromJson(json, GameState::class.java)
+                GameState.gson.fromJson(json, GameState::class.java)
             } catch (e: Exception) {
                 null
             }
@@ -241,14 +239,14 @@ class GameViewModel : ViewModel() {
             isHapticsEnabled = isHapticsEnabled
         )
 
-        prefs.edit().putString("game_state", gson.toJson(updatedGameState)).apply()
+        prefs.edit().putString("game_state", GameState.gson.toJson(updatedGameState)).apply()
     }
 
     fun loadGame(prefs: SharedPreferences) {
         val json = prefs.getString("game_state", null)
         if (json != null) {
             try {
-                val gameState = Gson().fromJson(json, GameState::class.java)
+                val gameState = GameState.gson.fromJson(json, GameState::class.java)
                 initializeGameType(gameState.gameType)
                 stock = gameState.stock.map { Pile(it) }.toMutableList()
                 waste = gameState.waste.map { Pile(it) }.toMutableList()

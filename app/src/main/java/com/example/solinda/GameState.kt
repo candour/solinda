@@ -1,5 +1,7 @@
 package com.example.solinda
 
+import com.google.gson.Gson
+
 data class GameState(
     val stock: List<PileState>,
     val waste: List<PileState>,
@@ -20,7 +22,11 @@ data class GameState(
     val jewelindaLevelType: com.example.solinda.jewelinda.LevelType = com.example.solinda.jewelinda.LevelType.COLOR_COLLECTION,
     val frostLevelJson: String? = null,
     val objectiveProgressJson: String? = null
-)
+) {
+    companion object {
+        val gson = Gson()
+    }
+}
 
 data class PileState(
     val cards: List<CardState>,
