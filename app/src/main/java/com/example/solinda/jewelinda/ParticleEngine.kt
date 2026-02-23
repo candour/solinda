@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.random.Random
 
 // 1. Mutable Data Class (Vital for performance)
@@ -38,6 +41,10 @@ class ParticleEngine {
         repeat(maxParticles) { add(FastParticle().apply { alpha = 0f }) }
     }
 
+    // Signals if any particles are active to avoid unnecessary physics loops
+    private val _isActive = MutableStateFlow(false)
+    val isActive: StateFlow<Boolean> = _isActive.asStateFlow()
+
     // Force redraw without full recomposition
     var tick by mutableLongStateOf(0L)
         private set
@@ -52,6 +59,9 @@ class ParticleEngine {
                 spawned++
             }
             if (spawned >= 12) break // Hard limit per burst
+        }
+        if (spawned > 0) {
+            _isActive.value = true
         }
     }
 
@@ -68,12 +78,14 @@ class ParticleEngine {
                 p.vy += gravity // Gravity
                 p.alpha -= decay // Fade out
                 if (p.alpha < 0f) p.alpha = 0f
-                hasActiveParticles = true
+                else hasActiveParticles = true
             }
         }
 
         if (hasActiveParticles) {
             tick++
+        } else {
+            _isActive.value = false
         }
     }
 }
