@@ -534,7 +534,7 @@ class GameView @JvmOverloads constructor(
         val startX = card.x
         val startY = card.y
         val anim = ValueAnimator.ofFloat(0f, 1f)
-        anim.duration = 200
+        anim.duration = 100
 
         val animationState = AnimationState(card, startX, startY, targetX, targetY, anim)
 
