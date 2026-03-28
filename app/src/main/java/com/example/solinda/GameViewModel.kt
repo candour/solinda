@@ -135,6 +135,10 @@ class GameViewModel : ViewModel() {
         return gameRules.canPlaceOnTableau(stack, toPile, freeCells, tableau)
     }
 
+    fun canPlaceOnFreeCell(stack: List<Card>, freeCell: Pile): Boolean {
+        return gameRules.canPlaceOnFreeCell(stack, freeCell)
+    }
+
     fun findValidSubStack(pile: Pile, cardIndex: Int): MutableList<Card> {
         val originalStack = pile.cards.subList(cardIndex, pile.cards.size)
 

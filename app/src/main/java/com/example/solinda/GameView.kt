@@ -86,6 +86,7 @@ class GameView @JvmOverloads constructor(
     private var isDragging = false
     private var potentialDragStack: MutableList<Card>? = null
     private var potentialDragPile: Pile? = null
+    private var lastHoveredPile: Pile? = null
 
     private var previousWasteState: List<Card> = emptyList()
 
@@ -384,6 +385,7 @@ class GameView @JvmOverloads constructor(
                 } else if (isDragging) {
                     dragX = x
                     dragY = y
+                    updateHoveredPile(x, y)
                     invalidate()
                 }
             }
@@ -485,6 +487,12 @@ class GameView @JvmOverloads constructor(
         }
     }
 
+    private fun performSlightHaptic() {
+        if (viewModel.isHapticsEnabled) {
+            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        }
+    }
+
     private fun performDoubleHaptic() {
         if (viewModel.isHapticsEnabled) {
             performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -554,11 +562,67 @@ class GameView @JvmOverloads constructor(
         anim.start()
     }
 
+    private fun updateHoveredPile(x: Float, y: Float) {
+        val stack = dragStack ?: return
+        var currentHoveredPile: Pile? = null
+
+        // Try foundations (only single cards)
+        if (stack.size == 1) {
+            for (foundation in viewModel.foundations) {
+                val fx = getPileX(foundation)
+                val fy = getPileY(foundation)
+                if (x in (fx - calculatedCardWidth / 2)..(fx + calculatedCardWidth / 2) &&
+                    y in (fy - calculatedCardHeight / 2)..(fy + calculatedCardHeight / 2)) {
+                    if (viewModel.canPlaceOnFoundation(stack.first(), foundation)) {
+                        currentHoveredPile = foundation
+                        break
+                    }
+                }
+            }
+            if (currentHoveredPile == null) {
+                // Try freecells (only single cards)
+                for (freeCell in viewModel.freeCells) {
+                    val fcx = getPileX(freeCell)
+                    val fcy = getPileY(freeCell)
+                    if (x in (fcx - calculatedCardWidth / 2)..(fcx + calculatedCardWidth / 2) &&
+                        y in (fcy - calculatedCardHeight / 2)..(fcy + calculatedCardHeight / 2)) {
+                        if (viewModel.canPlaceOnFreeCell(stack, freeCell)) {
+                            currentHoveredPile = freeCell
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        if (currentHoveredPile == null) {
+            // Try tableau
+            for (pile in viewModel.tableau) {
+                val px = getPileX(pile)
+                val tableauStartY = getPileY(pile) - calculatedCardHeight / 2f
+                if (x in (px - calculatedCardWidth / 2)..(px + calculatedCardWidth / 2) && y > tableauStartY) {
+                    if (viewModel.canPlaceOnTableau(stack, pile)) {
+                        currentHoveredPile = pile
+                        break
+                    }
+                }
+            }
+        }
+
+        if (currentHoveredPile != lastHoveredPile) {
+            if (currentHoveredPile != null) {
+                performSlightHaptic()
+            }
+            lastHoveredPile = currentHoveredPile
+        }
+    }
+
     private fun resetDrag() {
         dragStack = null
         dragFromPile = null
         potentialDragStack = null
         potentialDragPile = null
+        lastHoveredPile = null
         isDragging = false
         dragX = 0f
         dragY = 0f

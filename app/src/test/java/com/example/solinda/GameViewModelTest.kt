@@ -81,6 +81,25 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `canPlaceOnFreeCell is true for valid placement`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        val aceOfSpades = Card(Suit.SPADES, 1)
+        val freeCell = viewModel.freeCells[0]
+        assertTrue(viewModel.canPlaceOnFreeCell(listOf(aceOfSpades), freeCell))
+    }
+
+    @Test
+    fun `canPlaceOnFreeCell is false for invalid placement`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        val aceOfSpades = Card(Suit.SPADES, 1)
+        val twoOfSpades = Card(Suit.SPADES, 2)
+        val freeCell = viewModel.freeCells[0]
+        freeCell.addCard(aceOfSpades)
+        assertFalse(viewModel.canPlaceOnFreeCell(listOf(twoOfSpades), freeCell))
+        assertFalse(viewModel.canPlaceOnFreeCell(listOf(aceOfSpades, twoOfSpades), freeCell))
+    }
+
+    @Test
     fun `initializeGameType sets the correct game type`() {
         viewModel.initializeGameType(GameType.FREECELL)
         assertEquals(GameType.FREECELL, viewModel.gameType)
