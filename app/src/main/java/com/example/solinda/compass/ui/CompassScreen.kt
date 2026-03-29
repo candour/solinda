@@ -52,13 +52,18 @@ fun CompassScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isPortrait = maxWidth < maxHeight
+
             // Options Button
             Button(
                 onClick = onOptionsClick,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
+                    .then(
+                        if (isPortrait) Modifier.offset(y = maxHeight * 0.1f) else Modifier
+                    )
             ) {
                 Text("Options")
             }

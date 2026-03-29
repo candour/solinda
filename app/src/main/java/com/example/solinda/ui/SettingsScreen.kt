@@ -2,8 +2,10 @@ package com.example.solinda.ui
 
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,31 +55,74 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
         ) {
-            Text("Game Type", style = MaterialTheme.typography.titleMedium)
-            GameTypeSelector(selectedGameType, onSelect = { selectedGameType = it })
+            val isLandscape = maxWidth > maxHeight
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Column 1: Game Type and Deal Count
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Game Type", style = MaterialTheme.typography.titleMedium)
+                        GameTypeSelector(selectedGameType, onSelect = { selectedGameType = it })
 
-            Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Deal Count", style = MaterialTheme.typography.titleMedium)
-            DealCountSelector(selectedDealCount, onSelect = { selectedDealCount = it })
+                        Text("Deal Count", style = MaterialTheme.typography.titleMedium)
+                        DealCountSelector(selectedDealCount, onSelect = { selectedDealCount = it })
+                    }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.width(32.dp))
 
-            OutlinedTextField(value = leftMargin, onValueChange = { leftMargin = it }, label = { Text("Left Margin (Portrait)") })
-            OutlinedTextField(value = rightMargin, onValueChange = { rightMargin = it }, label = { Text("Right Margin (Portrait)") })
-            OutlinedTextField(value = leftMarginLandscape, onValueChange = { leftMarginLandscape = it }, label = { Text("Left Margin (Landscape)") })
-            OutlinedTextField(value = rightMarginLandscape, onValueChange = { rightMarginLandscape = it }, label = { Text("Right Margin (Landscape)") })
-            OutlinedTextField(value = revealFactor, onValueChange = { revealFactor = it }, label = { Text("Tableau Reveal Factor") })
+                    // Column 2: Margins, Reveal Factor, and Haptics
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(value = leftMargin, onValueChange = { leftMargin = it }, label = { Text("Left Margin (Portrait)") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = rightMargin, onValueChange = { rightMargin = it }, label = { Text("Right Margin (Portrait)") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = leftMarginLandscape, onValueChange = { leftMarginLandscape = it }, label = { Text("Left Margin (Landscape)") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = rightMarginLandscape, onValueChange = { rightMarginLandscape = it }, label = { Text("Right Margin (Landscape)") }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(value = revealFactor, onValueChange = { revealFactor = it }, label = { Text("Tableau Reveal Factor") }, modifier = Modifier.fillMaxWidth())
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = hapticsEnabled, onCheckedChange = { hapticsEnabled = it })
-                Text("Haptic Feedback")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = hapticsEnabled, onCheckedChange = { hapticsEnabled = it })
+                            Text("Haptic Feedback")
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text("Game Type", style = MaterialTheme.typography.titleMedium)
+                    GameTypeSelector(selectedGameType, onSelect = { selectedGameType = it })
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Deal Count", style = MaterialTheme.typography.titleMedium)
+                    DealCountSelector(selectedDealCount, onSelect = { selectedDealCount = it })
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(value = leftMargin, onValueChange = { leftMargin = it }, label = { Text("Left Margin (Portrait)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = rightMargin, onValueChange = { rightMargin = it }, label = { Text("Right Margin (Portrait)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = leftMarginLandscape, onValueChange = { leftMarginLandscape = it }, label = { Text("Left Margin (Landscape)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = rightMarginLandscape, onValueChange = { rightMarginLandscape = it }, label = { Text("Right Margin (Landscape)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = revealFactor, onValueChange = { revealFactor = it }, label = { Text("Tableau Reveal Factor") }, modifier = Modifier.fillMaxWidth())
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = hapticsEnabled, onCheckedChange = { hapticsEnabled = it })
+                        Text("Haptic Feedback")
+                    }
+                }
             }
         }
     }
