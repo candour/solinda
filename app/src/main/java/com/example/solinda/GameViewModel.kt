@@ -239,7 +239,7 @@ class GameViewModel : ViewModel() {
             val settings = gameState.commonSettings
             initializeGameType(settings.gameType)
 
-            gameState.solitaireData?.let { data ->
+            gameState.solitaireData?.let { data: SolitaireData ->
                 stock = data.stock.map { Pile(it) }.toMutableList()
                 waste = data.waste.map { Pile(it) }.toMutableList()
                 foundations = data.foundations.map { Pile(it) }.toMutableList()
