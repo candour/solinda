@@ -85,9 +85,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadGame(repository: com.example.solinda.GameRepository) {
         val gameState = repository.loadGame()
         if (gameState != null && gameState.jewelindaData != null) {
-            val data = gameState.jewelindaData
+            val data: com.example.solinda.JewelindaData = gameState.jewelindaData
             try {
-                data.boardJson?.let { boardJson ->
+                data.boardJson?.let { boardJson: String ->
                     val gemListType = object : TypeToken<List<Gem>>() {}.type
                     val gems: List<Gem> = GameState.gson.fromJson(boardJson, gemListType)
                     val loadedBoard = GameBoard()
