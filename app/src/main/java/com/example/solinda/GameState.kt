@@ -4,6 +4,23 @@ import com.google.gson.Gson
 import com.example.solinda.jewelinda.GemType
 import com.example.solinda.jewelinda.LevelType
 
+data class SolitaireData(
+    val stock: List<PileState>,
+    val waste: List<PileState>,
+    val foundations: List<PileState>,
+    val tableau: List<PileState>,
+    val freeCells: List<PileState>
+)
+
+data class JewelindaData(
+    val boardJson: String?,
+    val score: Int,
+    val moves: Int,
+    val levelType: LevelType,
+    val frostLevelJson: String?,
+    val objectiveProgressJson: String?
+)
+
 data class GameState(
     val commonSettings: CommonSettings,
     val solitaireData: SolitaireData?,

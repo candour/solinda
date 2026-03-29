@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.example.solinda.compass.CompassViewModel
+import com.example.solinda.compass.ui.CompassScreen
 import com.example.solinda.jewelinda.JewelindaViewModel
 import com.example.solinda.jewelinda.ui.JewelindaScreen
 import com.example.solinda.jewelinda.ui.JewelindaTheme
@@ -18,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: GameViewModel by viewModels()
     private val jewelindaViewModel: JewelindaViewModel by viewModels()
+    private val compassViewModel: CompassViewModel by viewModels()
     private lateinit var repository: GameRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +48,12 @@ class MainActivity : ComponentActivity() {
                                     viewModel = jewelindaViewModel,
                                     gameViewModel = viewModel,
                                     repository = repository,
+                                    onOptionsClick = { showSettings = true }
+                                )
+                            }
+                            GameType.COMPASS -> {
+                                CompassScreen(
+                                    viewModel = compassViewModel,
                                     onOptionsClick = { showSettings = true }
                                 )
                             }
