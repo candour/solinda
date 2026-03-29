@@ -88,7 +88,7 @@ fun SolitaireScreen(
         return Rect(x, y, x + cardWidth, y + cardHeight)
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0B6623))
@@ -205,21 +205,52 @@ fun SolitaireScreen(
             }
     ) {
         if (cardWidth > 0) {
+            val isPortrait = maxWidth < maxHeight
+
             // Controls
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(onClick = {
-                    viewModel.newGame()
-                    viewModel.saveGame(repository)
-                }) {
-                    Text("New Game")
+            if (isPortrait) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 16.dp)
+                        .offset(y = maxHeight * 0.1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.newGame()
+                            viewModel.saveGame(repository)
+                        },
+                        modifier = Modifier.height(40.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                    ) {
+                        Text("New Game", fontSize = 13.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onOptionsClick,
+                        modifier = Modifier.height(40.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                    ) {
+                        Text("Options", fontSize = 13.sp)
+                    }
                 }
-                Button(onClick = onOptionsClick) {
-                    Text("Options")
+            } else {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(onClick = {
+                        viewModel.newGame()
+                        viewModel.saveGame(repository)
+                    }) {
+                        Text("New Game")
+                    }
+                    Button(onClick = onOptionsClick) {
+                        Text("Options")
+                    }
                 }
             }
 

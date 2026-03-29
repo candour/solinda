@@ -14,12 +14,12 @@ class GameViewModel : ViewModel() {
     var tableau = mutableListOf<Pile>()
     var freeCells = mutableListOf<Pile>()
 
-    var dealCount: Int = 1
-    var leftMargin: Int = 20
-    var rightMargin: Int = 20
-    var leftMarginLandscape: Int = 20
-    var rightMarginLandscape: Int = 20
-    var tableauCardRevealFactor: Float = 0.3f
+    var dealCount: Int = Constants.DEFAULT_DEAL_COUNT
+    var leftMargin: Int = Constants.DEFAULT_MARGIN
+    var rightMargin: Int = Constants.DEFAULT_MARGIN
+    var leftMarginLandscape: Int = Constants.DEFAULT_MARGIN_LANDSCAPE_LEFT
+    var rightMarginLandscape: Int = Constants.DEFAULT_MARGIN_LANDSCAPE_RIGHT
+    var tableauCardRevealFactor: Float = Constants.DEFAULT_TABLEAU_REVEAL_FACTOR
     var isHapticsEnabled: Boolean = true
 
     init {
