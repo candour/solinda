@@ -1,11 +1,12 @@
 package com.example.solinda.jewelinda
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.solinda.GameState
 import com.example.solinda.GameType
+import com.example.solinda.JewelindaData
+import com.example.solinda.CommonSettings
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,85 +59,62 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var moveJob: Job? = null
 
-    init {
-        loadGame()
-    }
+    fun saveGame(repository: com.example.solinda.GameRepository) {
+        val existingGameState = repository.loadGame()
 
-    fun saveGame() {
-        val prefs = getApplication<Application>().getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
-        val json = prefs.getString("game_state", null)
-        val gameState = if (json != null) {
-            try {
-                GameState.gson.fromJson(json, GameState::class.java)
-            } catch (e: Exception) {
-                createDefaultGameState()
-            }
-        } else {
-            createDefaultGameState()
-        }
-
-        val boardJson = GameState.gson.toJson(_board.value.getGridFlattened())
-        val frostJson = GameState.gson.toJson(_board.value.getFrostLevelsFlattened())
-        val objectiveJson = GameState.gson.toJson(_objectives.value)
-
-        val updatedGameState = gameState.copy(
-            jewelindaBoardJson = boardJson,
-            jewelindaScore = _score.value,
-            jewelindaMoves = _movesRemaining.value,
-            jewelindaLevelType = _levelType.value,
-            frostLevelJson = frostJson,
-            objectiveProgressJson = objectiveJson
+        val jewelindaData = JewelindaData(
+            boardJson = GameState.gson.toJson(_board.value.getGridFlattened()),
+            score = _score.value,
+            moves = _movesRemaining.value,
+            levelType = _levelType.value,
+            frostLevelJson = GameState.gson.toJson(_board.value.getFrostLevelsFlattened()),
+            objectiveProgressJson = GameState.gson.toJson(_objectives.value)
         )
 
-        prefs.edit().putString("game_state", GameState.gson.toJson(updatedGameState)).apply()
+        val updatedGameState = existingGameState?.copy(
+            jewelindaData = jewelindaData
+        ) ?: GameState(
+            commonSettings = CommonSettings(gameType = GameType.JEWELINDA),
+            solitaireData = null,
+            jewelindaData = jewelindaData
+        )
+
+        repository.saveGame(updatedGameState)
     }
 
-    fun loadGame() {
-        val prefs = getApplication<Application>().getSharedPreferences("solinda_prefs", Context.MODE_PRIVATE)
-        val json = prefs.getString("game_state", null)
-        if (json != null) {
+    fun loadGame(repository: com.example.solinda.GameRepository) {
+        val gameState = repository.loadGame()
+        if (gameState != null && gameState.jewelindaData != null) {
+            val data = gameState.jewelindaData
             try {
-                val gameState = GameState.gson.fromJson(json, GameState::class.java)
-                val boardJson = gameState.jewelindaBoardJson
-                if (boardJson != null) {
+                data.boardJson?.let { boardJson ->
                     val gemListType = object : TypeToken<List<Gem>>() {}.type
                     val gems: List<Gem> = GameState.gson.fromJson(boardJson, gemListType)
                     val loadedBoard = GameBoard()
                     loadedBoard.loadGrid(gems)
 
-                    gameState.frostLevelJson?.let { fJson ->
+                    data.frostLevelJson?.let { fJson ->
                         val frost: Array<IntArray> = GameState.gson.fromJson(fJson, Array<IntArray>::class.java)
                         loadedBoard.loadFrost(frost)
                     }
 
                     _board.value = loadedBoard
-                    _score.value = gameState.jewelindaScore
-                    _movesRemaining.value = gameState.jewelindaMoves
-                    _levelType.value = gameState.jewelindaLevelType
+                    _score.value = data.score
+                    _movesRemaining.value = data.moves
+                    _levelType.value = data.levelType
 
-                    gameState.objectiveProgressJson?.let { oJson ->
+                    data.objectiveProgressJson?.let { oJson ->
                         val objType = object : TypeToken<Map<GemType, Int>>() {}.type
                         val objectives: Map<GemType, Int> = GameState.gson.fromJson(oJson, objType)
                         _objectives.value = objectives
                     }
-                    return
                 }
             } catch (e: Exception) {
-                // Fallback to newGame
+                newGame()
             }
+        } else {
+            newGame()
         }
-        newGame()
-    }
-
-    private fun createDefaultGameState(): GameState {
-        return GameState(
-            stock = emptyList(),
-            waste = emptyList(),
-            foundations = emptyList(),
-            tableau = emptyList(),
-            freeCells = emptyList(),
-            gameType = GameType.JEWELINDA
-        )
     }
 
     fun newGame() {
@@ -161,7 +139,6 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         _board.value = newBoard
         _score.value = 0
         _movesRemaining.value = INITIAL_MOVES
-        saveGame()
     }
 
     fun checkWinCondition(): Boolean {
@@ -186,7 +163,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
         return objectivesMet && frostMet
     }
 
-    fun onSwipe(x: Int, y: Int, direction: Direction) {
+    fun onSwipe(x: Int, y: Int, direction: Direction, repository: com.example.solinda.GameRepository) {
         if (_isProcessing.value) return
 
         val board = _board.value
@@ -208,12 +185,12 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
             moveJob?.cancel()
             moveJob = viewModelScope.launch {
-                processMove(y, x, targetY, targetX)
+                processMove(y, x, targetY, targetX, repository)
             }
         }
     }
 
-    private suspend fun processMove(row1: Int, col1: Int, row2: Int, col2: Int) {
+    private suspend fun processMove(row1: Int, col1: Int, row2: Int, col2: Int, repository: com.example.solinda.GameRepository) {
         if (_movesRemaining.value <= 0) return
         _isProcessing.value = true
         try {
@@ -226,139 +203,139 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
             delay(600)
 
             if (boardCopy.hasAnyMatch()) {
-            _movesRemaining.value -= 1
-            var multiplier = 1
-            var isInitialMove = true
-            while (boardCopy.hasAnyMatch()) {
-                val matchGroups = boardCopy.findAllMatchGroups()
-                val matchedCoords = matchGroups.flatMap { it.gems }.toSet()
+                _movesRemaining.value -= 1
+                var multiplier = 1
+                var isInitialMove = true
+                while (boardCopy.hasAnyMatch()) {
+                    val matchGroups = boardCopy.findAllMatchGroups()
+                    val matchedCoords = matchGroups.flatMap { it.gems }.toSet()
 
-                // Identify bombs and hypergems to be created
-                val newBombs = mutableListOf<Triple<Int, Int, GemType>>()
-                val newHyperGems = mutableListOf<Pair<Int, Int>>()
-                val gemsInFiveMatch = mutableSetOf<Pair<Int, Int>>()
+                    // Identify bombs and hypergems to be created
+                    val newBombs = mutableListOf<Triple<Int, Int, GemType>>()
+                    val newHyperGems = mutableListOf<Pair<Int, Int>>()
+                    val gemsInFiveMatch = mutableSetOf<Pair<Int, Int>>()
 
-                val colorToGroups = matchGroups.groupBy { it.type }
-                for ((type, groups) in colorToGroups) {
-                    if (type == GemType.HYPER) continue
-                    val allGemsInColor = groups.flatMap { it.gems }.toSet()
-                    if (allGemsInColor.size >= 5) {
-                        gemsInFiveMatch.addAll(allGemsInColor)
-                        val gemCounts = groups.flatMap { it.gems }.groupingBy { it }.eachCount()
-                        val intersection = gemCounts.filter { it.value > 1 }.keys.firstOrNull()
-                        val hyperPos = intersection ?: groups.maxBy { it.gems.size }.gems.let { it[it.size / 2] }
-                        newHyperGems.add(hyperPos)
-                    } else if (groups.any { it.gems.size >= 4 }) {
-                        val group = groups.first { it.gems.size >= 4 }
-                        val bombPos = if (isInitialMove && group.gems.contains(swapTarget)) {
-                            swapTarget
-                        } else {
-                            group.gems[group.gems.size / 2]
+                    val colorToGroups = matchGroups.groupBy { it.type }
+                    for ((type, groups) in colorToGroups) {
+                        if (type == GemType.HYPER) continue
+                        val allGemsInColor = groups.flatMap { it.gems }.toSet()
+                        if (allGemsInColor.size >= 5) {
+                            gemsInFiveMatch.addAll(allGemsInColor)
+                            val gemCounts = groups.flatMap { it.gems }.groupingBy { it }.eachCount()
+                            val intersection = gemCounts.filter { it.value > 1 }.keys.firstOrNull()
+                            val hyperPos = intersection ?: groups.maxBy { it.gems.size }.gems.let { it[it.size / 2] }
+                            newHyperGems.add(hyperPos)
+                        } else if (groups.any { it.gems.size >= 4 }) {
+                            val group = groups.first { it.gems.size >= 4 }
+                            val bombPos = if (isInitialMove && group.gems.contains(swapTarget)) {
+                                swapTarget
+                            } else {
+                                group.gems[group.gems.size / 2]
+                            }
+                            newBombs.add(Triple(bombPos.first, bombPos.second, type))
                         }
-                        newBombs.add(Triple(bombPos.first, bombPos.second, type))
                     }
-                }
 
-                // Identify triggered bombs and hypergems
-                val allClearedCoords = matchedCoords.toMutableSet()
-                val bombsToTrigger = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.isBomb == true }.toMutableList()
+                    // Identify triggered bombs and hypergems
+                    val allClearedCoords = matchedCoords.toMutableSet()
+                    val bombsToTrigger = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.isBomb == true }.toMutableList()
 
-                // Hypergem Activation
-                val hyperGemsInMatch = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.type == GemType.HYPER }
-                val colorsToMassBomb = mutableSetOf<GemType>()
-                for (hCoord in hyperGemsInMatch) {
-                    val groupsWithHyper = matchGroups.filter { it.gems.contains(hCoord) && it.type != GemType.HYPER }
-                    colorsToMassBomb.addAll(groupsWithHyper.map { it.type })
-                }
+                    // Hypergem Activation
+                    val hyperGemsInMatch = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.type == GemType.HYPER }
+                    val colorsToMassBomb = mutableSetOf<GemType>()
+                    for (hCoord in hyperGemsInMatch) {
+                        val groupsWithHyper = matchGroups.filter { it.gems.contains(hCoord) && it.type != GemType.HYPER }
+                        colorsToMassBomb.addAll(groupsWithHyper.map { it.type })
+                    }
 
-                if (colorsToMassBomb.isNotEmpty()) {
-                    for (color in colorsToMassBomb) {
-                        for (y in 0 until GameBoard.HEIGHT) {
-                            for (x in 0 until GameBoard.WIDTH) {
-                                val gem = boardCopy.getGem(x, y)
-                                if (gem != null && gem.type == color) {
-                                    allClearedCoords.add(x to y)
-                                    boardCopy.setBomb(x, y, color)
-                                    bombsToTrigger.add(x to y)
+                    if (colorsToMassBomb.isNotEmpty()) {
+                        for (color in colorsToMassBomb) {
+                            for (y in 0 until GameBoard.HEIGHT) {
+                                for (x in 0 until GameBoard.WIDTH) {
+                                    val gem = boardCopy.getGem(x, y)
+                                    if (gem != null && gem.type == color) {
+                                        allClearedCoords.add(x to y)
+                                        boardCopy.setBomb(x, y, color)
+                                        bombsToTrigger.add(x to y)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
-                var bIdx = 0
-                while (bIdx < bombsToTrigger.size) {
-                    val (bx, by) = bombsToTrigger[bIdx]
-                    if (triggeredBombs.add(Pair(bx, by))) {
-                        _events.emit(JewelindaEvent.BombExploded)
-                        val area = boardCopy.getExplosionArea(bx, by)
-                        for (coord in area) {
-                            val gem = boardCopy.getGem(coord.first, coord.second)
-                            if (gem != null) {
-                                allClearedCoords.add(coord)
-                                if (gem.isBomb && !triggeredBombs.contains(coord)) {
-                                    bombsToTrigger.add(coord)
+                    val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
+                    var bIdx = 0
+                    while (bIdx < bombsToTrigger.size) {
+                        val (bx, by) = bombsToTrigger[bIdx]
+                        if (triggeredBombs.add(Pair(bx, by))) {
+                            _events.emit(JewelindaEvent.BombExploded)
+                            val area = boardCopy.getExplosionArea(bx, by)
+                            for (coord in area) {
+                                val gem = boardCopy.getGem(coord.first, coord.second)
+                                if (gem != null) {
+                                    allClearedCoords.add(coord)
+                                    if (gem.isBomb && !triggeredBombs.contains(coord)) {
+                                        bombsToTrigger.add(coord)
+                                    }
                                 }
                             }
                         }
+                        bIdx++
                     }
-                    bIdx++
-                }
 
-                var frostClearedInThisStep = false
-                val currentObjectives = _objectives.value.toMutableMap()
+                    var frostClearedInThisStep = false
+                    val currentObjectives = _objectives.value.toMutableMap()
 
-                allClearedCoords.forEach { (x, y) ->
-                    boardCopy.getGem(x, y)?.let { gem ->
-                        _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
-                        if (currentObjectives.containsKey(gem.type)) {
-                            currentObjectives[gem.type] = (currentObjectives[gem.type]!! - 1).coerceAtLeast(0)
+                    allClearedCoords.forEach { (x, y) ->
+                        boardCopy.getGem(x, y)?.let { gem ->
+                            _events.emit(JewelindaEvent.GemCleared(x, y, gem.type))
+                            if (currentObjectives.containsKey(gem.type)) {
+                                currentObjectives[gem.type] = (currentObjectives[gem.type]!! - 1).coerceAtLeast(0)
+                            }
+                        }
+                        if (boardCopy.decrementFrost(x, y)) {
+                            frostClearedInThisStep = true
                         }
                     }
-                    if (boardCopy.decrementFrost(x, y)) {
-                        frostClearedInThisStep = true
+                    _objectives.value = currentObjectives
+
+                    if (frostClearedInThisStep) {
+                        soundManager?.playIceCrack()
                     }
+
+                    _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size, frostClearedInThisStep))
+
+                    var points = 0
+                    for (coord in allClearedCoords) {
+                        points += if (gemsInFiveMatch.contains(coord)) 100 else 50
+                    }
+                    _score.value += points * multiplier
+
+                    boardCopy.removeGems(allClearedCoords)
+
+                    // Place new bombs
+                    for ((bx, by, bType) in newBombs) {
+                        boardCopy.setBomb(bx, by, bType)
+                    }
+                    // Place new hypergems
+                    for (hPos in newHyperGems) {
+                        boardCopy.setHyper(hPos.first, hPos.second)
+                    }
+                    _board.value = boardCopy.copy()
+                    delay(400)
+
+                    _isGravityEnabled.value = true
+                    boardCopy.refillAndPrepareFall()
+                    _board.value = boardCopy.copy()
+                    delay(50)
+
+                    boardCopy.finalizeFall()
+                    _board.value = boardCopy.copy()
+                    delay(400)
+
+                    multiplier *= 2
+                    isInitialMove = false
                 }
-                _objectives.value = currentObjectives
-
-                if (frostClearedInThisStep) {
-                    soundManager?.playIceCrack()
-                }
-
-                _events.emit(JewelindaEvent.MatchPerformed(allClearedCoords.size, frostClearedInThisStep))
-
-                var points = 0
-                for (coord in allClearedCoords) {
-                    points += if (gemsInFiveMatch.contains(coord)) 100 else 50
-                }
-                _score.value += points * multiplier
-
-                boardCopy.removeGems(allClearedCoords)
-
-                // Place new bombs
-                for ((bx, by, bType) in newBombs) {
-                    boardCopy.setBomb(bx, by, bType)
-                }
-                // Place new hypergems
-                for (hPos in newHyperGems) {
-                    boardCopy.setHyper(hPos.first, hPos.second)
-                }
-                _board.value = boardCopy.copy()
-                delay(400)
-
-                _isGravityEnabled.value = true
-                boardCopy.refillAndPrepareFall()
-                _board.value = boardCopy.copy()
-                delay(50)
-
-                boardCopy.finalizeFall()
-                _board.value = boardCopy.copy()
-                delay(400)
-
-                multiplier *= 2
-                isInitialMove = false
-            }
 
                 // Check if shuffle needed
                 if (!boardCopy.hasPossibleMoves()) {
@@ -368,7 +345,7 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                     _board.value = boardCopy.copy()
                     delay(600)
                 }
-                saveGame()
+                saveGame(repository)
             } else {
                 // Swap back
                 boardCopy.swapGems(col1, row1, col2, row2)

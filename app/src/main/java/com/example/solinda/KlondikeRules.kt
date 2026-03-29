@@ -1,6 +1,6 @@
 package com.example.solinda
 
-class KlondikeRules : GameRules {
+class KlondikeRules : CardGameRules {
     override val foundationPilesCount: Int = 4
     override val tableauPilesCount: Int = 7
     override val freeCellsCount: Int = 0
@@ -101,6 +101,8 @@ class KlondikeRules : GameRules {
     override fun checkWin(foundations: List<Pile>): Boolean {
         return foundations.all { it.cards.size == 13 }
     }
+
+    override fun setupBoard() {}
 
     override fun isGameWinnable(
         stock: List<Pile>,

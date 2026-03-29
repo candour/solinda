@@ -1,6 +1,6 @@
 package com.example.solinda
 
-class FreeCellRules : GameRules {
+class FreeCellRules : CardGameRules {
     override val foundationPilesCount: Int = 4
     override val tableauPilesCount: Int = 8
     override val freeCellsCount: Int = 4
@@ -108,6 +108,8 @@ class FreeCellRules : GameRules {
     override fun checkWin(foundations: List<Pile>): Boolean {
         return foundations.all { it.cards.size == 13 }
     }
+
+    override fun setupBoard() {}
 
     override fun isGameWinnable(
         stock: List<Pile>,

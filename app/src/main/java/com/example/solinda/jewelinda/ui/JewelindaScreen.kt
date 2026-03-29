@@ -104,6 +104,7 @@ fun ObjectiveBar(
 fun JewelindaScreen(
     viewModel: JewelindaViewModel,
     gameViewModel: GameViewModel,
+    repository: com.example.solinda.GameRepository,
     onOptionsClick: () -> Unit
 ) {
     val board by viewModel.board.collectAsState()
@@ -116,6 +117,8 @@ fun JewelindaScreen(
     val density = LocalDensity.current
 
     var shakeOffset by remember { mutableStateOf(Offset.Zero) }
+
+    val repositoryWrapper = remember(repository) { repository }
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -174,6 +177,7 @@ fun JewelindaScreen(
                     particleEngine = particleEngine,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
                     shakeOffset = shakeOffset,
+                    repository = repositoryWrapper,
                     onOptionsClick = onOptionsClick
                 )
             } else {
@@ -187,6 +191,7 @@ fun JewelindaScreen(
                     particleEngine = particleEngine,
                     isHapticsEnabled = gameViewModel.isHapticsEnabled,
                     shakeOffset = shakeOffset,
+                    repository = repositoryWrapper,
                     onOptionsClick = onOptionsClick
                 )
             }
@@ -213,6 +218,7 @@ fun PortraitLayout(
     particleEngine: ParticleEngine,
     isHapticsEnabled: Boolean,
     shakeOffset: Offset,
+    repository: com.example.solinda.GameRepository,
     onOptionsClick: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -296,7 +302,8 @@ fun PortraitLayout(
             GameGrid(
                 viewModel = viewModel,
                 particleEngine = particleEngine,
-                isHapticsEnabled = isHapticsEnabled
+                isHapticsEnabled = isHapticsEnabled,
+                repository = repository
             )
         }
     }
@@ -313,6 +320,7 @@ fun LandscapeLayout(
     particleEngine: ParticleEngine,
     isHapticsEnabled: Boolean,
     shakeOffset: Offset,
+    repository: com.example.solinda.GameRepository,
     onOptionsClick: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -361,7 +369,8 @@ fun LandscapeLayout(
                 GameGrid(
                     viewModel = viewModel,
                     particleEngine = particleEngine,
-                    isHapticsEnabled = isHapticsEnabled
+                    isHapticsEnabled = isHapticsEnabled,
+                    repository = repository
                 )
             }
 
@@ -424,4 +433,3 @@ fun BoxScope.ParticleOverlay(engine: ParticleEngine) {
         }
     }
 }
-

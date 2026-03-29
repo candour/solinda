@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 class GameViewModel : ViewModel() {
 
     var gameType: GameType = GameType.KLONDIKE
-    private lateinit var gameRules: GameRules
+    private lateinit var gameRules: CardGameRules
 
     var stock = mutableListOf<Pile>()
     var waste = mutableListOf<Pile>()
@@ -28,11 +28,12 @@ class GameViewModel : ViewModel() {
 
     fun initializeGameType(newGameType: GameType) {
         gameType = newGameType
-        gameRules = when (gameType) {
+        val rules = when (gameType) {
             GameType.KLONDIKE -> KlondikeRules()
             GameType.FREECELL -> FreeCellRules()
-            GameType.JEWELINDA -> JewelindaRules()
+            else -> KlondikeRules() // Fallback for card games
         }
+        gameRules = rules
         stock = MutableList(gameRules.stockPilesCount) { Pile(PileType.STOCK) }
         waste = MutableList(gameRules.wastePilesCount) { Pile(PileType.WASTE) }
         foundations = MutableList(gameRules.foundationPilesCount) { Pile(PileType.FOUNDATION) }
@@ -201,40 +202,20 @@ class GameViewModel : ViewModel() {
         return null
     }
 
-    fun saveGame(prefs: SharedPreferences) {
-        val json = prefs.getString("game_state", null)
-        val existingGameState = if (json != null) {
-            try {
-                GameState.gson.fromJson(json, GameState::class.java)
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
-        }
+    fun saveGame(repository: GameRepository) {
+        val existingGameState = repository.loadGame()
 
-        val updatedGameState = existingGameState?.copy(
+        val solitaireData = SolitaireData(
             stock = stock.map { it.toPileState() },
             waste = waste.map { it.toPileState() },
             foundations = foundations.map { it.toPileState() },
             tableau = tableau.map { it.toPileState() },
-            freeCells = freeCells.map { it.toPileState() },
-            dealCount = dealCount,
+            freeCells = freeCells.map { it.toPileState() }
+        )
+
+        val commonSettings = CommonSettings(
             gameType = gameType,
-            leftMargin = leftMargin,
-            rightMargin = rightMargin,
-            leftMarginLandscape = leftMarginLandscape,
-            rightMarginLandscape = rightMarginLandscape,
-            tableauCardRevealFactor = tableauCardRevealFactor,
-            isHapticsEnabled = isHapticsEnabled
-        ) ?: GameState(
-            stock = stock.map { it.toPileState() },
-            waste = waste.map { it.toPileState() },
-            foundations = foundations.map { it.toPileState() },
-            tableau = tableau.map { it.toPileState() },
-            freeCells = freeCells.map { it.toPileState() },
             dealCount = dealCount,
-            gameType = gameType,
             leftMargin = leftMargin,
             rightMargin = rightMargin,
             leftMarginLandscape = leftMarginLandscape,
@@ -243,31 +224,36 @@ class GameViewModel : ViewModel() {
             isHapticsEnabled = isHapticsEnabled
         )
 
-        prefs.edit().putString("game_state", GameState.gson.toJson(updatedGameState)).apply()
+        val updatedGameState = GameState(
+            commonSettings = commonSettings,
+            solitaireData = solitaireData,
+            jewelindaData = existingGameState?.jewelindaData
+        )
+
+        repository.saveGame(updatedGameState)
     }
 
-    fun loadGame(prefs: SharedPreferences) {
-        val json = prefs.getString("game_state", null)
-        if (json != null) {
-            try {
-                val gameState = GameState.gson.fromJson(json, GameState::class.java)
-                initializeGameType(gameState.gameType)
-                stock = gameState.stock.map { Pile(it) }.toMutableList()
-                waste = gameState.waste.map { Pile(it) }.toMutableList()
-                foundations = gameState.foundations.map { Pile(it) }.toMutableList()
-                tableau = gameState.tableau.map { Pile(it) }.toMutableList()
-                freeCells = gameState.freeCells.map { Pile(it) }.toMutableList()
-                dealCount = gameState.dealCount
-                leftMargin = gameState.leftMargin
-                rightMargin = gameState.rightMargin
-                leftMarginLandscape = gameState.leftMarginLandscape
-                rightMarginLandscape = gameState.rightMarginLandscape
-                tableauCardRevealFactor = gameState.tableauCardRevealFactor
-                isHapticsEnabled = gameState.isHapticsEnabled
-            } catch (e: Exception) {
-                // Handle cases where the saved game state is invalid (e.g. old CALCULATOR game type)
-                initializeGameType(GameType.KLONDIKE)
+    fun loadGame(repository: GameRepository) {
+        val gameState = repository.loadGame()
+        if (gameState != null) {
+            val settings = gameState.commonSettings
+            initializeGameType(settings.gameType)
+
+            gameState.solitaireData?.let { data ->
+                stock = data.stock.map { Pile(it) }.toMutableList()
+                waste = data.waste.map { Pile(it) }.toMutableList()
+                foundations = data.foundations.map { Pile(it) }.toMutableList()
+                tableau = data.tableau.map { Pile(it) }.toMutableList()
+                freeCells = data.freeCells.map { Pile(it) }.toMutableList()
             }
+
+            dealCount = settings.dealCount
+            leftMargin = settings.leftMargin
+            rightMargin = settings.rightMargin
+            leftMarginLandscape = settings.leftMarginLandscape
+            rightMarginLandscape = settings.rightMarginLandscape
+            tableauCardRevealFactor = settings.tableauCardRevealFactor
+            isHapticsEnabled = settings.isHapticsEnabled
         } else {
             initializeGameType(GameType.KLONDIKE)
         }

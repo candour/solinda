@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">Solinda</string>
+    <string name="new_game">New Game</string>
+    <string name="options">Options</string>
+    <string name="settings">Settings</string>
+    <string name="save">Save</string>
+    <string name="game_type">Game Type</string>
+    <string name="deal_count">Deal Count</string>
+    <string name="left_margin_portrait">Left Margin (Portrait)</string>
+    <string name="right_margin_portrait">Right Margin (Portrait)</string>
+    <string name="left_margin_landscape">Left Margin (Landscape)</string>
+    <string name="right_margin_landscape">Right Margin (Landscape)</string>
+    <string name="tableau_reveal_factor">Tableau Reveal Factor</string>
+    <string name="haptic_feedback">Haptic Feedback</string>
+    <string name="score">Score: %1$d</string>
+    <string name="target">Target: %1$d</string>
+    <string name="moves">Moves: %1$d</string>
+    <string name="win_message">🎉 You Win!</string>
+    <string name="game_over">Game Over</string>
+    <string name="play_again">Play Again</string>
 </resources>

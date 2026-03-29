@@ -77,7 +77,8 @@ fun FrostTile(level: Int, size: Dp, x: Int, y: Int) {
 fun GameGrid(
     viewModel: JewelindaViewModel,
     particleEngine: ParticleEngine,
-    isHapticsEnabled: Boolean
+    isHapticsEnabled: Boolean,
+    repository: com.example.solinda.GameRepository
 ) {
     val board by viewModel.board.collectAsState()
     val isProcessing by viewModel.isProcessing.collectAsState()
@@ -184,7 +185,7 @@ fun GameGrid(
                                         if (isHapticsEnabled) {
                                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                         }
-                                        viewModel.onSwipe(currentSourceCoords.first, currentSourceCoords.second, direction)
+                                        viewModel.onSwipe(currentSourceCoords.first, currentSourceCoords.second, direction, repository)
                                         dragTriggered = true
                                         scope.launch {
                                             dragOffset.animateTo(Offset.Zero, SnappySpringOffset)
