@@ -121,6 +121,34 @@ fun SolitaireScreen(
         }
     }
 
+    fun handleAutoComplete(topMarginPx: Float) {
+        if (viewModel.gameType == GameType.FREECELL || viewModel.isGameWinnable()) {
+            val result = viewModel.autoMoveToFoundation(skipModelUpdate = true)
+            if (result != null) {
+                val (card, fromPile, targetPile) = result
+                val fromIndex = when (fromPile.type) {
+                    PileType.TABLEAU -> viewModel.tableau.indexOf(fromPile)
+                    PileType.FREE_CELL -> viewModel.freeCells.indexOf(fromPile)
+                    PileType.WASTE -> viewModel.waste.indexOf(fromPile)
+                    else -> 0
+                }
+                val cardIndex = fromPile.cards.size - 1
+                val startX = getPileX(fromPile, fromIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
+                val startY = getPileY(fromPile, fromIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+
+                val targetIndex = viewModel.foundations.indexOf(targetPile)
+                val endX = getPileX(targetPile, targetIndex)
+                val endY = getPileY(targetPile, targetIndex, topMarginPx)
+
+                animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
+                    viewModel.autoMoveToFoundation(skipModelUpdate = false)
+                    handleAutoComplete(topMarginPx)
+                    viewModel.saveGame(repository)
+                }
+            }
+        }
+    }
+
     fun handleAutoMove(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
         val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
         val startY = getPileY(fromPile, pileIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
@@ -138,39 +166,11 @@ fun SolitaireScreen(
             animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
                 // Perform model update AFTER animation
                 viewModel.autoMoveCard(card, fromPile, skipModelUpdate = false)
-                if (viewModel.gameType == GameType.FREECELL) {
-                    viewModel.checkForAutoComplete()
-                }
-                viewModel.saveGame(repository)
-            }
-        }
-    }
-
-    fun handleAutoComplete(topMarginPx: Float) {
-        val result = viewModel.autoMoveToFoundation(skipModelUpdate = true)
-        if (result != null) {
-            val (card, fromPile, targetPile) = result
-            val fromIndex = when (fromPile.type) {
-                PileType.TABLEAU -> viewModel.tableau.indexOf(fromPile)
-                PileType.FREE_CELL -> viewModel.freeCells.indexOf(fromPile)
-                else -> 0
-            }
-            val startX = getPileX(fromPile, fromIndex) + (if (fromPile.type == PileType.WASTE) (fromPile.cards.size - 1).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-            val startY = getPileY(fromPile, fromIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) (fromPile.cards.size - 1) * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
-
-            val targetIndex = viewModel.foundations.indexOf(targetPile)
-            val endX = getPileX(targetPile, targetIndex)
-            val endY = getPileY(targetPile, targetIndex, topMarginPx)
-
-            animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
-                viewModel.autoMoveToFoundation(skipModelUpdate = false)
                 handleAutoComplete(topMarginPx)
                 viewModel.saveGame(repository)
             }
         }
     }
-
-    // Replace checkForAutoComplete in handleAutoMove and onDragEnd with handleAutoComplete
 
     BoxWithConstraints(
         modifier = Modifier
@@ -312,9 +312,7 @@ fun SolitaireScreen(
                                     if (getPileRect(foundation, index, topMarginPx).contains(dropCenter)) {
                                         if (viewModel.canPlaceOnFoundation(stack.first(), foundation)) {
                                             viewModel.moveToFoundation(fromPile, foundation)
-                                            if (viewModel.gameType == GameType.FREECELL) {
-                                                handleAutoComplete(topMarginPx)
-                                            }
+                                            handleAutoComplete(topMarginPx)
                                             viewModel.saveGame(repository)
                                         }
                                     }
@@ -328,9 +326,7 @@ fun SolitaireScreen(
                                 if (dropRect.contains(dropCenter)) {
                                     if (viewModel.canPlaceOnTableau(stack, tableauPile)) {
                                         viewModel.moveStackToTableau(fromPile, stack.toMutableList(), tableauPile)
-                                        if (viewModel.gameType == GameType.FREECELL) {
-                                            handleAutoComplete(topMarginPx)
-                                        }
+                                        handleAutoComplete(topMarginPx)
                                         viewModel.saveGame(repository)
                                     }
                                 }
@@ -528,7 +524,13 @@ fun SolitaireScreen(
             // Win state overlay
             if (viewModel.checkWin()) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { }, contentAlignment = Alignment.Center) {
-                    Text(text = "🎉 You Win!", color = Color.Yellow, fontSize = 48.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "🎉 You Win!", color = Color.Yellow, fontSize = 48.sp)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) {
+                            Text("New Game", fontSize = 20.sp)
+                        }
+                    }
                 }
             }
 
