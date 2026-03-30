@@ -1,26 +1,31 @@
 package com.example.solinda
 
-import android.content.SharedPreferences
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 
 class GameViewModel : ViewModel() {
 
-    var gameType: GameType = GameType.KLONDIKE
+    var gameType: GameType by mutableStateOf(GameType.KLONDIKE)
     private lateinit var gameRules: CardGameRules
 
-    var stock = mutableListOf<Pile>()
-    var waste = mutableListOf<Pile>()
-    var foundations = mutableListOf<Pile>()
-    var tableau = mutableListOf<Pile>()
-    var freeCells = mutableListOf<Pile>()
+    var stock = mutableStateListOf<Pile>()
+    var waste = mutableStateListOf<Pile>()
+    var foundations = mutableStateListOf<Pile>()
+    var tableau = mutableStateListOf<Pile>()
+    var freeCells = mutableStateListOf<Pile>()
 
-    var dealCount: Int = Constants.DEFAULT_DEAL_COUNT
-    var leftMargin: Int = Constants.DEFAULT_MARGIN
-    var rightMargin: Int = Constants.DEFAULT_MARGIN
-    var leftMarginLandscape: Int = Constants.DEFAULT_MARGIN_LANDSCAPE_LEFT
-    var rightMarginLandscape: Int = Constants.DEFAULT_MARGIN_LANDSCAPE_RIGHT
-    var tableauCardRevealFactor: Float = Constants.DEFAULT_TABLEAU_REVEAL_FACTOR
-    var isHapticsEnabled: Boolean = true
+    var dealCount: Int by mutableIntStateOf(Constants.DEFAULT_DEAL_COUNT)
+    var leftMargin: Int by mutableIntStateOf(Constants.DEFAULT_MARGIN)
+    var rightMargin: Int by mutableIntStateOf(Constants.DEFAULT_MARGIN)
+    var leftMarginLandscape: Int by mutableIntStateOf(Constants.DEFAULT_MARGIN_LANDSCAPE_LEFT)
+    var rightMarginLandscape: Int by mutableIntStateOf(Constants.DEFAULT_MARGIN_LANDSCAPE_RIGHT)
+    var tableauCardRevealFactor: Float by mutableFloatStateOf(Constants.DEFAULT_TABLEAU_REVEAL_FACTOR)
+    var isHapticsEnabled: Boolean by mutableStateOf(true)
 
     init {
         initializeGameType(gameType)
@@ -34,21 +39,22 @@ class GameViewModel : ViewModel() {
             else -> KlondikeRules() // Fallback for card games
         }
         gameRules = rules
-        stock = MutableList(gameRules.stockPilesCount) { Pile(PileType.STOCK) }
-        waste = MutableList(gameRules.wastePilesCount) { Pile(PileType.WASTE) }
-        foundations = MutableList(gameRules.foundationPilesCount) { Pile(PileType.FOUNDATION) }
-        tableau = MutableList(gameRules.tableauPilesCount) { Pile(PileType.TABLEAU) }
-        freeCells = MutableList(gameRules.freeCellsCount) { Pile(PileType.FREE_CELL) }
+        stock.clear()
+        stock.addAll(List(gameRules.stockPilesCount) { Pile(PileType.STOCK) })
+        waste.clear()
+        waste.addAll(List(gameRules.wastePilesCount) { Pile(PileType.WASTE) })
+        foundations.clear()
+        foundations.addAll(List(gameRules.foundationPilesCount) { Pile(PileType.FOUNDATION) })
+        tableau.clear()
+        tableau.addAll(List(gameRules.tableauPilesCount) { Pile(PileType.TABLEAU) })
+        freeCells.clear()
+        freeCells.addAll(List(gameRules.freeCellsCount) { Pile(PileType.FREE_CELL) })
         newGame()
     }
 
     fun resetGame(newGameType: GameType, newDealCount: Int) {
         dealCount = newDealCount
-        if (gameType != newGameType) {
-            initializeGameType(newGameType)
-        } else {
-            newGame()
-        }
+        initializeGameType(newGameType)
     }
 
 
@@ -57,6 +63,7 @@ class GameViewModel : ViewModel() {
     }
 
     fun drawFromStock(): List<Card> {
+        if (stock.isEmpty() || waste.isEmpty()) return emptyList()
         return gameRules.drawFromStock(stock.first(), waste.first(), dealCount)
     }
 
@@ -167,35 +174,35 @@ class GameViewModel : ViewModel() {
     fun autoMoveToFoundation(): Pair<Card, Pile>? {
         // First, check the free cells
         for (pile in freeCells) {
-            pile.topCard()?.let { card ->
-                foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                    pile.removeTopCard()
-                    foundation.addCard(card)
-                    return Pair(card, foundation)
-                }
+            val card = pile.topCard() ?: continue
+            foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
+                pile.removeTopCard()
+                foundation.addCard(card)
+                gameRules.revealIfNeeded(pile)
+                return Pair(card, foundation)
             }
         }
 
         // Then, check the waste pile
-        if (waste.isNotEmpty()) {
-            waste.first().topCard()?.let { card ->
-                foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                    waste.first().removeTopCard()
-                    foundation.addCard(card)
-                    return Pair(card, foundation)
-                }
+        waste.firstOrNull()?.let { wastePile ->
+            val card = wastePile.topCard() ?: return@let
+            foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
+                wastePile.removeTopCard()
+                foundation.addCard(card)
+                gameRules.revealIfNeeded(wastePile)
+                return Pair(card, foundation)
             }
         }
 
 
         // Then, check the tableau piles
         for (pile in tableau) {
-            pile.topCard()?.let { card ->
-                foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                    pile.removeTopCard()
-                    foundation.addCard(card)
-                    return Pair(card, foundation)
-                }
+            val card = pile.topCard() ?: continue
+            foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
+                pile.removeTopCard()
+                foundation.addCard(card)
+                gameRules.revealIfNeeded(pile)
+                return Pair(card, foundation)
             }
         }
 
@@ -205,13 +212,17 @@ class GameViewModel : ViewModel() {
     fun saveGame(repository: GameRepository) {
         val existingGameState = repository.loadGame()
 
-        val solitaireData = SolitaireData(
-            stock = stock.map { it.toPileState() },
-            waste = waste.map { it.toPileState() },
-            foundations = foundations.map { it.toPileState() },
-            tableau = tableau.map { it.toPileState() },
-            freeCells = freeCells.map { it.toPileState() }
-        )
+        val solitaireData = if (gameType == GameType.KLONDIKE || gameType == GameType.FREECELL) {
+            SolitaireData(
+                stock = stock.map { it.toPileState() },
+                waste = waste.map { it.toPileState() },
+                foundations = foundations.map { it.toPileState() },
+                tableau = tableau.map { it.toPileState() },
+                freeCells = freeCells.map { it.toPileState() }
+            )
+        } else {
+            existingGameState?.solitaireData
+        }
 
         val commonSettings = CommonSettings(
             gameType = gameType,
@@ -237,14 +248,29 @@ class GameViewModel : ViewModel() {
         val gameState = repository.loadGame()
         if (gameState != null) {
             val settings = gameState.commonSettings
+
+            // First, initialize the game type to set up the rules and pile counts
             initializeGameType(settings.gameType)
 
+            // Only load saved card data if it matches the current game type's structure
             gameState.solitaireData?.let { data: SolitaireData ->
-                stock = data.stock.map { Pile(it) }.toMutableList()
-                waste = data.waste.map { Pile(it) }.toMutableList()
-                foundations = data.foundations.map { Pile(it) }.toMutableList()
-                tableau = data.tableau.map { Pile(it) }.toMutableList()
-                freeCells = data.freeCells.map { Pile(it) }.toMutableList()
+                if (data.stock.size == gameRules.stockPilesCount &&
+                    data.waste.size == gameRules.wastePilesCount &&
+                    data.foundations.size == gameRules.foundationPilesCount &&
+                    data.tableau.size == gameRules.tableauPilesCount &&
+                    data.freeCells.size == gameRules.freeCellsCount) {
+
+                    stock.clear()
+                    stock.addAll(data.stock.map { Pile(it) })
+                    waste.clear()
+                    waste.addAll(data.waste.map { Pile(it) })
+                    foundations.clear()
+                    foundations.addAll(data.foundations.map { Pile(it) })
+                    tableau.clear()
+                    tableau.addAll(data.tableau.map { Pile(it) })
+                    freeCells.clear()
+                    freeCells.addAll(data.freeCells.map { Pile(it) })
+                }
             }
 
             dealCount = settings.dealCount

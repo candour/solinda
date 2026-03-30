@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -35,11 +36,12 @@ fun SolitaireScreen(
     var screenHeight by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
 
-    val cardWidth = remember(screenWidth, screenHeight) {
+    val cardWidth = remember(screenWidth, screenHeight, viewModel.gameType, viewModel.leftMargin, viewModel.rightMargin, viewModel.leftMarginLandscape, viewModel.rightMarginLandscape) {
         if (screenWidth > 0) {
+            val isLandscape = screenWidth > screenHeight
             val numPiles = viewModel.tableau.size.coerceAtLeast(7)
-            val leftMarginPx = with(density) { (if (screenWidth > screenHeight) viewModel.leftMarginLandscape else viewModel.leftMargin).dp.toPx() }
-            val rightMarginPx = with(density) { (if (screenWidth > screenHeight) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx() }
+            val leftMarginPx = with(density) { (if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin).dp.toPx() }
+            val rightMarginPx = with(density) { (if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx() }
             val totalSpacing = (numPiles - 1) * with(density) { 8.dp.toPx() }
             (screenWidth - leftMarginPx - rightMarginPx - totalSpacing) / numPiles
         } else 0f
@@ -70,7 +72,8 @@ fun SolitaireScreen(
                     if (viewModel.gameType == GameType.FREECELL) {
                         startX + (4 + index) * pileSpacing
                     } else {
-                        screenWidth - with(density) { viewModel.rightMargin.dp.toPx() } - (4 - index) * pileSpacing
+                        val rMargin = (if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx()
+                        screenWidth - rMargin - (4 - index) * pileSpacing
                     }
                 }
                 PileType.TABLEAU -> startX + index * pileSpacing
@@ -96,7 +99,7 @@ fun SolitaireScreen(
                 screenWidth = it.size.width.toFloat()
                 screenHeight = it.size.height.toFloat()
             }
-            .pointerInput(cardWidth, cardHeight, viewModel.gameType) {
+            .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor) {
                 detectDragGestures(
                     onDragStart = { offset ->
                         // Hit detection for dragging
@@ -368,11 +371,21 @@ fun SolitaireScreen(
                                     modifier = Modifier
                                         .offset(y = offsetDp)
                                         .size(cardWidthDp, cardHeightDp)
-                                        .clickable {
-                                            if (card == pile.topCard()) {
-                                                viewModel.autoMoveCard(card, pile)
-                                                viewModel.saveGame(repository)
-                                            }
+                                        .pointerInput(card, pile) {
+                                            detectTapGestures(
+                                                onTap = {
+                                                    if (card == pile.topCard()) {
+                                                        viewModel.autoMoveCard(card, pile)
+                                                        viewModel.saveGame(repository)
+                                                    }
+                                                },
+                                                onDoubleTap = {
+                                                    if (card == pile.topCard()) {
+                                                        viewModel.autoMoveCard(card, pile)
+                                                        viewModel.saveGame(repository)
+                                                    }
+                                                }
+                                            )
                                         }
                                 )
                             }

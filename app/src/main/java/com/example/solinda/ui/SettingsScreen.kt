@@ -38,14 +38,13 @@ fun SettingsScreen(
                 title = { Text("Settings") },
                 actions = {
                     Button(onClick = {
-                        viewModel.gameType = selectedGameType
-                        viewModel.dealCount = selectedDealCount
                         viewModel.leftMargin = leftMargin.toIntOrNull() ?: viewModel.leftMargin
                         viewModel.rightMargin = rightMargin.toIntOrNull() ?: viewModel.rightMargin
                         viewModel.leftMarginLandscape = leftMarginLandscape.toIntOrNull() ?: viewModel.leftMarginLandscape
                         viewModel.rightMarginLandscape = rightMarginLandscape.toIntOrNull() ?: viewModel.rightMarginLandscape
                         viewModel.tableauCardRevealFactor = revealFactor.toFloatOrNull() ?: viewModel.tableauCardRevealFactor
                         viewModel.isHapticsEnabled = hapticsEnabled
+                        viewModel.resetGame(selectedGameType, selectedDealCount)
                         viewModel.saveGame(repository)
                         onClose()
                     }) {
