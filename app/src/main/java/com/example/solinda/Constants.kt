@@ -8,7 +8,7 @@ object Constants {
     const val DEFAULT_TABLEAU_REVEAL_FACTOR = 0.2f
     const val INITIAL_MOVES = 30
     const val TARGET_SCORE = 1000
-    const val ANIMATION_DURATION_MS = 100
+    const val ANIMATION_DURATION_MS = 150
     const val SWIPE_THRESHOLD_PX = 50f
     const val GRID_WIDTH = 8
     const val GRID_HEIGHT = 8

@@ -32,14 +32,20 @@ fun CompassScreen(
     val azimuth by viewModel.azimuth.collectAsState()
 
     // Smoothly animate the azimuth rotation to avoid jittery movements
-    val animatedAzimuth by animateFloatAsState(
-        targetValue = azimuth,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "CompassRotation"
-    )
+    val animatedAzimuth = remember { Animatable(azimuth) }
+
+    LaunchedEffect(azimuth) {
+        var delta = azimuth - animatedAzimuth.value
+        while (delta > 180f) delta -= 360f
+        while (delta < -180f) delta += 360f
+        animatedAzimuth.animateTo(
+            targetValue = animatedAzimuth.value + delta,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
 
     DisposableEffect(viewModel) {
         viewModel.startListening()
@@ -75,7 +81,7 @@ fun CompassScreen(
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CompassDial(rotation = -animatedAzimuth)
+                CompassDial(rotation = -animatedAzimuth.value)
 
                 // Current heading text
                 Column(
