@@ -96,16 +96,18 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    fun autoMoveCard(card: Card, fromPile: Pile): Pile? {
+    fun autoMoveCard(card: Card, fromPile: Pile, skipModelUpdate: Boolean = false): Pile? {
         if (card != fromPile.topCard() || fromPile.type == PileType.FOUNDATION) {
             return null
         }
 
         // Priority 1: Move to a foundation
         foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { targetFoundation ->
-            val cardToMove = fromPile.removeTopCard()!!
-            gameRules.revealIfNeeded(fromPile)
-            targetFoundation.addCard(cardToMove)
+            if (!skipModelUpdate) {
+                val cardToMove = fromPile.removeTopCard()!!
+                gameRules.revealIfNeeded(fromPile)
+                targetFoundation.addCard(cardToMove)
+            }
             return targetFoundation
         }
 
@@ -122,9 +124,11 @@ class GameViewModel : ViewModel() {
         }
 
         targetPile?.let {
-            val cardToMove = fromPile.removeTopCard()!!
-            gameRules.revealIfNeeded(fromPile)
-            it.addCard(cardToMove)
+            if (!skipModelUpdate) {
+                val cardToMove = fromPile.removeTopCard()!!
+                gameRules.revealIfNeeded(fromPile)
+                it.addCard(cardToMove)
+            }
             return it
         }
 
@@ -171,15 +175,30 @@ class GameViewModel : ViewModel() {
         return gameRules.isGameWinnable(stock, waste, tableau, freeCells)
     }
 
-    fun autoMoveToFoundation(): Pair<Card, Pile>? {
+    var onAutoMovePerformed: ((Card, Pile, Pile) -> Unit)? = null
+
+    fun checkForAutoComplete() {
+        if (gameType == GameType.FREECELL || isGameWinnable()) {
+            val moved = autoMoveToFoundation()
+            if (moved != null) {
+                // If a callback is registered, we let the UI handle the move (and possibly animate it)
+                // However, autoMoveToFoundation already performed the move in the model.
+                // We might need to rethink this to support animations for cascading moves.
+            }
+        }
+    }
+
+    fun autoMoveToFoundation(skipModelUpdate: Boolean = false): Triple<Card, Pile, Pile>? {
         // First, check the free cells
         for (pile in freeCells) {
             val card = pile.topCard() ?: continue
             foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                pile.removeTopCard()
-                foundation.addCard(card)
-                gameRules.revealIfNeeded(pile)
-                return Pair(card, foundation)
+                if (!skipModelUpdate) {
+                    pile.removeTopCard()
+                    foundation.addCard(card)
+                    gameRules.revealIfNeeded(pile)
+                }
+                return Triple(card, pile, foundation)
             }
         }
 
@@ -187,10 +206,12 @@ class GameViewModel : ViewModel() {
         waste.firstOrNull()?.let { wastePile ->
             val card = wastePile.topCard() ?: return@let
             foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                wastePile.removeTopCard()
-                foundation.addCard(card)
-                gameRules.revealIfNeeded(wastePile)
-                return Pair(card, foundation)
+                if (!skipModelUpdate) {
+                    wastePile.removeTopCard()
+                    foundation.addCard(card)
+                    gameRules.revealIfNeeded(wastePile)
+                }
+                return Triple(card, wastePile, foundation)
             }
         }
 
@@ -199,10 +220,12 @@ class GameViewModel : ViewModel() {
         for (pile in tableau) {
             val card = pile.topCard() ?: continue
             foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { foundation ->
-                pile.removeTopCard()
-                foundation.addCard(card)
-                gameRules.revealIfNeeded(pile)
-                return Pair(card, foundation)
+                if (!skipModelUpdate) {
+                    pile.removeTopCard()
+                    foundation.addCard(card)
+                    gameRules.revealIfNeeded(pile)
+                }
+                return Triple(card, pile, foundation)
             }
         }
 

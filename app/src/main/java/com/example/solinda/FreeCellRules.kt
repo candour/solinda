@@ -117,7 +117,6 @@ class FreeCellRules : CardGameRules {
         tableau: List<Pile>,
         freeCells: List<Pile>
     ): Boolean {
-        // For now, we'll consider the game always winnable until a more complex algorithm is needed.
-        return true
+        return tableau.all { it.isEmpty() || it.cards.all { card -> card.faceUp } } && freeCells.all { it.isEmpty() }
     }
 }
