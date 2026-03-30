@@ -1,14 +1,19 @@
 package com.example.solinda
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 enum class Suit { HEARTS, DIAMONDS, CLUBS, SPADES }
 
-data class Card(
+class Card(
     val suit: Suit,
-    val rank: Int, // 1 = Ace ... 13 = King
-    var faceUp: Boolean = false,
-    var x: Float = 0f,
-    var y: Float = 0f
+    val rank: Int // 1 = Ace ... 13 = King
 ) {
+    var faceUp by mutableStateOf(false)
+    var x by mutableStateOf(0f)
+    var y by mutableStateOf(0f)
+
     val color: String
         get() = if (suit == Suit.HEARTS || suit == Suit.DIAMONDS) "RED" else "BLACK"
 
@@ -28,6 +33,12 @@ data class Card(
         return "${ranks[rank - 1]} of $suit"
     }
 
+    constructor(suit: Suit, rank: Int, faceUp: Boolean, x: Float = 0f, y: Float = 0f) : this(suit, rank) {
+        this.faceUp = faceUp
+        this.x = x
+        this.y = y
+    }
+
     constructor(cardState: CardState) : this(
         cardState.suit,
         cardState.rank,
@@ -37,4 +48,20 @@ data class Card(
     )
 
     fun toCardState() = CardState(suit, rank, faceUp, x, y)
+
+    fun copy(faceUp: Boolean = this.faceUp, x: Float = this.x, y: Float = this.y): Card {
+        return Card(suit, rank, faceUp, x, y)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Card) return false
+        return suit == other.suit && rank == other.rank
+    }
+
+    override fun hashCode(): Int {
+        var result = suit.hashCode()
+        result = 31 * result + rank
+        return result
+    }
 }
