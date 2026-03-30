@@ -175,18 +175,6 @@ class GameViewModel : ViewModel() {
         return gameRules.isGameWinnable(stock, waste, tableau, freeCells)
     }
 
-    var onAutoMovePerformed: ((Card, Pile, Pile) -> Unit)? = null
-
-    fun checkForAutoComplete() {
-        if (gameType == GameType.FREECELL || isGameWinnable()) {
-            val moved = autoMoveToFoundation()
-            if (moved != null) {
-                // If a callback is registered, we let the UI handle the move (and possibly animate it)
-                // However, autoMoveToFoundation already performed the move in the model.
-                // We might need to rethink this to support animations for cascading moves.
-            }
-        }
-    }
 
     fun autoMoveToFoundation(skipModelUpdate: Boolean = false): Triple<Card, Pile, Pile>? {
         // First, check the free cells
