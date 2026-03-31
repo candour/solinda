@@ -41,9 +41,9 @@ fun SolitaireScreen(
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
 
+    val isLandscape = screenWidth > screenHeight
     val cardWidth = remember(screenWidth, screenHeight, viewModel.gameType, viewModel.leftMargin, viewModel.rightMargin, viewModel.leftMarginLandscape, viewModel.rightMarginLandscape) {
         if (screenWidth > 0) {
-            val isLandscape = screenWidth > screenHeight
             val numPiles = viewModel.tableau.size.coerceAtLeast(7)
             val leftMarginPx = with(density) { (if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin).dp.toPx() }
             val rightMarginPx = with(density) { (if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx() }
@@ -51,7 +51,9 @@ fun SolitaireScreen(
             (screenWidth - leftMarginPx - rightMarginPx - totalSpacing) / numPiles
         } else 0f
     }
-    val cardHeight = remember(cardWidth) { cardWidth * 1.4f }
+    val cardHeight = remember(cardWidth, isLandscape) {
+        if (isLandscape) cardWidth * 1.2f else cardWidth * 1.8f
+    }
 
     var draggingStack by remember { mutableStateOf<List<Card>?>(null) }
     var draggingFromPile by remember { mutableStateOf<Pile?>(null) }
@@ -60,7 +62,6 @@ fun SolitaireScreen(
 
     val animatingCards = remember { mutableStateListOf<Card>() }
 
-    val isLandscape = screenWidth > screenHeight
     val leftMargin = (if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin).dp
     val spacing = 8.dp
 
