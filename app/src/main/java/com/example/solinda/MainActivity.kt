@@ -58,12 +58,14 @@ class MainActivity : ComponentActivity() {
                             GameType.COMPASS -> {
                                 CompassScreen(
                                     viewModel = compassViewModel,
+                                    gameViewModel = viewModel,
                                     onOptionsClick = { showSettings = true }
                                 )
                             }
                             GameType.CALCULATOR -> {
                                 CalculatorScreen(
                                     viewModel = calculatorViewModel,
+                                    gameViewModel = viewModel,
                                     onOptionsClick = { showSettings = true }
                                 )
                             }

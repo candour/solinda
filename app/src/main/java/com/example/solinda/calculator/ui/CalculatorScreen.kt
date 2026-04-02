@@ -18,11 +18,25 @@ import androidx.compose.ui.unit.sp
 import com.example.solinda.R
 import com.example.solinda.calculator.CalculatorViewModel
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
+import com.example.solinda.GameViewModel
+
 @Composable
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
+    gameViewModel: GameViewModel,
     onOptionsClick: () -> Unit
 ) {
+    val view = LocalView.current
+
+    val onButtonClick: (() -> Unit) -> Unit = { action ->
+        action()
+        if (gameViewModel.isHapticsEnabled) {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.Black
@@ -73,11 +87,11 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { viewModel.onMemoryClear() }
-                CalculatorButton(stringResource(R.string.mr), Color.DarkGray, Modifier.weight(1f)) { viewModel.onMemoryRecall() }
-                CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, Modifier.weight(1f)) { viewModel.onMemoryAdd() }
-                CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, Modifier.weight(1f)) { viewModel.onMemorySubtract() }
-                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, Modifier.weight(1f)) { viewModel.onBackspaceClick() }
+                CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryClear() } }
+                CalculatorButton(stringResource(R.string.mr), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryRecall() } }
+                CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryAdd() } }
+                CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemorySubtract() } }
+                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onBackspaceClick() } }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -87,15 +101,15 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { viewModel.onACClick() }
-                CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, Modifier.weight(1f), Color.Black) { viewModel.onPlusMinusClick() }
-                CalculatorButton(stringResource(R.string.percentage), Color.LightGray, Modifier.weight(1f), Color.Black) { viewModel.onPercentageClick() }
+                CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onACClick() } }
+                CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPlusMinusClick() } }
+                CalculatorButton(stringResource(R.string.percentage), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPercentageClick() } }
                 CalculatorButton(
                     stringResource(R.string.divide),
                     Color(0xFFFFA500),
                     Modifier.weight(1f),
                     isHighlighted = viewModel.pendingOperator == "/"
-                ) { viewModel.onOperatorClick("/") }
+                ) { onButtonClick { viewModel.onOperatorClick("/") } }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -105,15 +119,15 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("7") }
-                CalculatorButton("8", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("8") }
-                CalculatorButton("9", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("9") }
+                CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("7") } }
+                CalculatorButton("8", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("8") } }
+                CalculatorButton("9", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("9") } }
                 CalculatorButton(
                     stringResource(R.string.multiply),
                     Color(0xFFFFA500),
                     Modifier.weight(1f),
                     isHighlighted = viewModel.pendingOperator == "*"
-                ) { viewModel.onOperatorClick("*") }
+                ) { onButtonClick { viewModel.onOperatorClick("*") } }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -123,15 +137,15 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("4") }
-                CalculatorButton("5", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("5") }
-                CalculatorButton("6", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("6") }
+                CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("4") } }
+                CalculatorButton("5", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("5") } }
+                CalculatorButton("6", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("6") } }
                 CalculatorButton(
                     stringResource(R.string.subtract),
                     Color(0xFFFFA500),
                     Modifier.weight(1f),
                     isHighlighted = viewModel.pendingOperator == "-"
-                ) { viewModel.onOperatorClick("-") }
+                ) { onButtonClick { viewModel.onOperatorClick("-") } }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -141,15 +155,15 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("1") }
-                CalculatorButton("2", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("2") }
-                CalculatorButton("3", Color(0xFF333333), Modifier.weight(1f)) { viewModel.onNumberClick("3") }
+                CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("1") } }
+                CalculatorButton("2", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("2") } }
+                CalculatorButton("3", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("3") } }
                 CalculatorButton(
                     stringResource(R.string.add),
                     Color(0xFFFFA500),
                     Modifier.weight(1f),
                     isHighlighted = viewModel.pendingOperator == "+"
-                ) { viewModel.onOperatorClick("+") }
+                ) { onButtonClick { viewModel.onOperatorClick("+") } }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -159,9 +173,9 @@ fun CalculatorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { viewModel.onNumberClick("0") }
-                CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), Modifier.weight(1f)) { viewModel.onDecimalClick() }
-                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), Modifier.weight(1f)) { viewModel.onEqualsClick() }
+                CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { onButtonClick { viewModel.onNumberClick("0") } }
+                CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onDecimalClick() } }
+                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), Modifier.weight(1f)) { onButtonClick { viewModel.onEqualsClick() } }
             }
         }
     }
