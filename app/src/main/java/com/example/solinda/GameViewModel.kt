@@ -249,7 +249,8 @@ class GameViewModel : ViewModel() {
         val updatedGameState = GameState(
             commonSettings = commonSettings,
             solitaireData = solitaireData,
-            jewelindaData = existingGameState?.jewelindaData
+            jewelindaData = existingGameState?.jewelindaData,
+            calculatorData = existingGameState?.calculatorData
         )
 
         repository.saveGame(updatedGameState)

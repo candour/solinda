@@ -4,5 +4,6 @@ enum class GameType {
     KLONDIKE,
     FREECELL,
     JEWELINDA,
-    COMPASS
+    COMPASS,
+    CALCULATOR
 }

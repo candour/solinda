@@ -18,4 +18,18 @@
     <string name="win_message">🎉 You Win!</string>
     <string name="game_over">Game Over</string>
     <string name="play_again">Play Again</string>
+    <string name="calculator">Calculator</string>
+    <string name="mc">MC</string>
+    <string name="mr">MR</string>
+    <string name="m_plus">M+</string>
+    <string name="m_minus">M-</string>
+    <string name="ac">AC</string>
+    <string name="plus_minus">+/-</string>
+    <string name="percentage">%</string>
+    <string name="divide">÷</string>
+    <string name="multiply">×</string>
+    <string name="subtract">-</string>
+    <string name="add">+</string>
+    <string name="equals">=</string>
+    <string name="dot">.</string>
 </resources>
