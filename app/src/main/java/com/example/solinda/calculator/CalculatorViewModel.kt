@@ -14,6 +14,9 @@ class CalculatorViewModel : ViewModel() {
     var pendingOperator by mutableStateOf<String?>(null)
     var isNewInput by mutableStateOf(true)
 
+    val memoryDisplayText: String
+        get() = if (memoryValue != 0.0) formatResult(memoryValue) else ""
+
     fun onNumberClick(number: String) {
         if (isNewInput) {
             if (pendingOperator == null) {
@@ -22,10 +25,12 @@ class CalculatorViewModel : ViewModel() {
             displayText = number
             isNewInput = false
         } else {
-            if (displayText == "0") {
-                displayText = number
-            } else {
-                displayText += number
+            if (displayText.length < 10) {
+                if (displayText == "0") {
+                    displayText = number
+                } else {
+                    displayText += number
+                }
             }
         }
     }
@@ -62,9 +67,25 @@ class CalculatorViewModel : ViewModel() {
     }
 
     private fun formatResult(result: Double): String {
-        return if (result.isNaN()) "Error"
-        else if (result == result.toLong().toDouble()) result.toLong().toString()
+        if (result.isNaN()) return "Error"
+        val formatted = if (result == result.toLong().toDouble()) result.toLong().toString()
         else result.toString()
+
+        return if (formatted.length > 10) {
+            formatted.substring(0, 10)
+        } else {
+            formatted
+        }
+    }
+
+    fun onBackspaceClick() {
+        if (!isNewInput) {
+            if (displayText.length > 1) {
+                displayText = displayText.dropLast(1)
+            } else {
+                displayText = "0"
+            }
+        }
     }
 
     fun onACClick() {
@@ -88,7 +109,7 @@ class CalculatorViewModel : ViewModel() {
         if (isNewInput) {
             displayText = "0."
             isNewInput = false
-        } else if (!displayText.contains(".")) {
+        } else if (!displayText.contains(".") && displayText.length < 10) {
             displayText += "."
         }
     }
@@ -96,20 +117,24 @@ class CalculatorViewModel : ViewModel() {
     fun onMemoryAdd() {
         memoryValue += (displayText.toDoubleOrNull() ?: 0.0)
         isNewInput = true
+        pendingOperator = null
     }
 
     fun onMemorySubtract() {
         memoryValue -= (displayText.toDoubleOrNull() ?: 0.0)
         isNewInput = true
+        pendingOperator = null
     }
 
     fun onMemoryRecall() {
         displayText = formatResult(memoryValue)
         isNewInput = true
+        pendingOperator = null
     }
 
     fun onMemoryClear() {
         memoryValue = 0.0
+        pendingOperator = null
     }
 
     fun saveGame(repository: GameRepository) {
