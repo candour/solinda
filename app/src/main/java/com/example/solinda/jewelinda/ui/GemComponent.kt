@@ -139,10 +139,17 @@ fun GemComponent(
                 )
             }
             .graphicsLayer {
-                this.scaleX = scaleX * if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
-                this.scaleY = scaleY * if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
-                this.rotationZ = if (gem.type == GemType.HYPER) hyperRotation else 0f
+                // Squash and stretch anchor at bottom
+                this.scaleX = scaleX
+                this.scaleY = scaleY
                 this.transformOrigin = TransformOrigin(0.5f, 1f)
+            }
+            .graphicsLayer {
+                // Pulse and rotation anchor at center
+                this.scaleX = if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
+                this.scaleY = if (gem.isBomb || gem.type == GemType.HYPER) pulse else 1f
+                this.rotationZ = if (gem.type == GemType.HYPER) hyperRotation else 0f
+                this.transformOrigin = TransformOrigin(0.5f, 0.5f)
             }
             .padding(4.dp)
     ) {
