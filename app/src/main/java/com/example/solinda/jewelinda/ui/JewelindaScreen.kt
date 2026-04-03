@@ -229,81 +229,73 @@ fun PortraitLayout(
     repository: com.example.solinda.GameRepository,
     onOptionsClick: () -> Unit
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val topOffset10 = maxHeight * 0.1f
-        val topOffset15 = maxHeight * 0.15f
-
-        // Info: Score and Target
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 16.dp)
-                .offset(y = topOffset10)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Top Row: Info and Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = "Score: $score",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Target: ${JewelindaViewModel.TARGET_SCORE}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
+            // Left: Score and Moves
+            Column {
+                Text(
+                    text = "Score: $score",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Target: ${JewelindaViewModel.TARGET_SCORE}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Moves: $moves",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Right: Buttons
+            Column(horizontalAlignment = Alignment.End) {
+                Button(
+                    onClick = { viewModel.newGame() },
+                    modifier = Modifier.height(40.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                ) {
+                    Text("New Game", fontSize = 13.sp)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onOptionsClick,
+                    modifier = Modifier.height(40.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                ) {
+                    Text("Options", fontSize = 13.sp)
+                }
+            }
         }
 
-        // Info: Moves
-        Text(
-            text = "Moves: $moves",
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 16.dp)
-                .offset(y = topOffset15),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = if (moves <= 5) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Objective Bar between info and board
+        // Objective Bar
+        ObjectiveBar(objectives = objectives, levelType = levelType, board = board)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Board
         Box(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .offset(y = topOffset10 + 60.dp) // Below score
-        ) {
-            ObjectiveBar(objectives = objectives, levelType = levelType, board = board)
-        }
-
-        // Buttons on the right
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 16.dp)
-                .offset(y = topOffset10),
-            horizontalAlignment = Alignment.End
-        ) {
-            Button(
-                onClick = { viewModel.newGame() },
-                modifier = Modifier.height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
-            ) {
-                Text("New Game", fontSize = 13.sp)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onOptionsClick,
-                modifier = Modifier.height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
-            ) {
-                Text("Options", fontSize = 13.sp)
-            }
-        }
-
-        // Board explicitly centered in full space
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
                 .offset { IntOffset(shakeOffset.x.roundToInt(), shakeOffset.y.roundToInt()) },
             contentAlignment = Alignment.Center
         ) {
