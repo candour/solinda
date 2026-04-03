@@ -23,18 +23,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.solinda.compass.CompassViewModel
 import kotlin.math.*
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
+import com.example.solinda.GameViewModel
 
 @Composable
 fun CompassScreen(
     viewModel: CompassViewModel,
+    gameViewModel: GameViewModel,
     onOptionsClick: () -> Unit
 ) {
     val azimuth by viewModel.azimuth.collectAsState()
+    val view = LocalView.current
+    var lastHapticTime by remember { mutableLongStateOf(0L) }
+    var lastAzimuth by remember { mutableFloatStateOf(azimuth) }
 
     // Smoothly animate the azimuth rotation to avoid jittery movements
     val animatedAzimuth = remember { Animatable(azimuth) }
 
     LaunchedEffect(azimuth) {
+        if (gameViewModel.isHapticsEnabled) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastHapticTime >= 1000L) {
+                // Check if we crossed North (0 degrees)
+                val crossedNorth = (lastAzimuth > 180f && azimuth <= 180f && (lastAzimuth > 350f || azimuth < 10f)) ||
+                                   (lastAzimuth <= 180f && azimuth > 180f && (lastAzimuth < 10f || azimuth > 350f)) ||
+                                   (lastAzimuth != 0f && azimuth == 0f)
+
+                if (crossedNorth) {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    lastHapticTime = currentTime
+                }
+            }
+        }
+        lastAzimuth = azimuth
+
         var delta = azimuth - animatedAzimuth.value
         while (delta > 180f) delta -= 360f
         while (delta < -180f) delta += 360f

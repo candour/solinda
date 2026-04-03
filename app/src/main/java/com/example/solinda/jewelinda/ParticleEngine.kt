@@ -36,7 +36,7 @@ class FastParticle(
 class ParticleEngine {
     // 2. The Object Pool
     // Reuse these objects! Never delete them, just hide them.
-    private val maxParticles = 150 
+    private val maxParticles = 75
     val particles = mutableStateListOf<FastParticle>().apply {
         repeat(maxParticles) { add(FastParticle().apply { alpha = 0f }) }
     }
@@ -58,7 +58,7 @@ class ParticleEngine {
                 p.reset(x, y, color, size)
                 spawned++
             }
-            if (spawned >= 12) break // Hard limit per burst
+            if (spawned >= 6) break // Hard limit per burst
         }
         if (spawned > 0) {
             _isActive.value = true
