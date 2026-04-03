@@ -79,8 +79,7 @@ fun SolitaireScreen(
                     if (viewModel.gameType == GameType.FREECELL) {
                         startX + (4 + index) * pileSpacing
                     } else {
-                        val rMargin = (if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx()
-                        screenWidth - rMargin - (4 - index) * pileSpacing
+                        startX + (3 + index) * pileSpacing
                     }
                 }
                 PileType.TABLEAU -> startX + index * pileSpacing
@@ -389,11 +388,12 @@ fun SolitaireScreen(
                             Button(onClick = onOptionsClick) { Text("Options") }
                         }
                     } else {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) { Text("New Game") }
                             Button(onClick = onOptionsClick) { Text("Options") }
@@ -403,18 +403,20 @@ fun SolitaireScreen(
 
                 val topMarginDp = with(density) { topMarginPx.toDp() }
 
-                // Top Row: Stock, Waste, Foundations (or FreeCells)
-                Row(
+                // Top area: Stock, Waste, FreeCells, Foundations
+                Box(
                     modifier = Modifier
-                        .padding(start = leftMargin, top = topMarginDp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                        .padding(top = topMarginDp)
+                        .fillMaxWidth()
+                        .height(cardHeightDp)
                 ) {
                     if (viewModel.gameType == GameType.KLONDIKE) {
                         // Stock
                         val stock = viewModel.stock.firstOrNull()
+                        val stockX = with(density) { getPileX(stock ?: Pile(PileType.STOCK, mutableListOf()), 0).toDp() }
                         Box(
                             modifier = Modifier
+                                .offset(x = stockX)
                                 .size(cardWidthDp, cardHeightDp)
                                 .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                                 .clickable {
@@ -445,7 +447,8 @@ fun SolitaireScreen(
 
                         // Waste
                         val waste = viewModel.waste.firstOrNull()
-                        Box(modifier = Modifier.width(cardWidthDp + (2 * 20).dp).height(cardHeightDp)) {
+                        val wasteX = with(density) { getPileX(waste ?: Pile(PileType.WASTE, mutableListOf()), 0).toDp() }
+                        Box(modifier = Modifier.offset(x = wasteX).width(cardWidthDp + (2 * 20).dp).height(cardHeightDp)) {
                             waste?.cards?.takeLast(3)?.forEachIndexed { index, card ->
                                 if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
                                     CardComponent(
@@ -458,11 +461,16 @@ fun SolitaireScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
-
                         // Foundations
                         viewModel.foundations.forEachIndexed { index, pile ->
-                            Box(modifier = Modifier.size(cardWidthDp, cardHeightDp).border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))) {
+                            val fx = with(density) { getPileX(pile, index).toDp() }
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = fx)
+                                    .size(cardWidthDp, cardHeightDp)
+                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            ) {
                                 pile.topCard()?.let { card ->
                                     if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
                                         CardComponent(card = card, modifier = Modifier.fillMaxSize())
@@ -473,7 +481,14 @@ fun SolitaireScreen(
                     } else if (viewModel.gameType == GameType.FREECELL) {
                         // FreeCells
                         viewModel.freeCells.forEachIndexed { index, pile ->
-                            Box(modifier = Modifier.size(cardWidthDp, cardHeightDp).border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))) {
+                            val fcx = with(density) { getPileX(pile, index).toDp() }
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = fcx)
+                                    .size(cardWidthDp, cardHeightDp)
+                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            ) {
                                 pile.topCard()?.let { card ->
                                     if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
                                         CardComponent(card = card, modifier = Modifier.fillMaxSize())
@@ -482,11 +497,16 @@ fun SolitaireScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
-
                         // Foundations
                         viewModel.foundations.forEachIndexed { index, pile ->
-                            Box(modifier = Modifier.size(cardWidthDp, cardHeightDp).border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))) {
+                            val fx = with(density) { getPileX(pile, index).toDp() }
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = fx)
+                                    .size(cardWidthDp, cardHeightDp)
+                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            ) {
                                 pile.topCard()?.let { card ->
                                     if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
                                         CardComponent(card = card, modifier = Modifier.fillMaxSize())
