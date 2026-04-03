@@ -242,28 +242,23 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
 
                     // Hypergem Activation
                     val hyperGemsInMatch = matchedCoords.filter { boardCopy.getGem(it.first, it.second)?.type == GemType.HYPER }
-                    val colorsToMassBomb = mutableSetOf<GemType>()
+                    val colorsToClear = mutableSetOf<GemType>()
                     for (hCoord in hyperGemsInMatch) {
                         val groupsWithHyper = matchGroups.filter { it.gems.contains(hCoord) && it.type != GemType.HYPER }
-                        colorsToMassBomb.addAll(groupsWithHyper.map { it.type })
+                        colorsToClear.addAll(groupsWithHyper.map { it.type })
                     }
 
-                    if (colorsToMassBomb.isNotEmpty()) {
-                        for (color in colorsToMassBomb) {
+                    if (colorsToClear.isNotEmpty()) {
+                        for (color in colorsToClear) {
                             for (y in 0 until GameBoard.HEIGHT) {
                                 for (x in 0 until GameBoard.WIDTH) {
                                     val gem = boardCopy.getGem(x, y)
                                     if (gem != null && gem.type == color) {
                                         allClearedCoords.add(x to y)
-                                        boardCopy.setBomb(x, y, color)
-                                        bombsToTrigger.add(x to y)
                                     }
                                 }
                             }
                         }
-                        // Emit board so bombs are visible before explosion starts
-                        _board.value = boardCopy.copy()
-                        delay(300)
                     }
 
                     val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
