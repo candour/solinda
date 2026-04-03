@@ -117,8 +117,26 @@ fun JewelindaScreen(
     val density = LocalDensity.current
 
     var shakeOffset by remember { mutableStateOf(Offset.Zero) }
+    var shakeUntil by remember { mutableLongStateOf(0L) }
 
     val repositoryWrapper = remember(repository) { repository }
+
+    // Screen Shake Animation Loop
+    LaunchedEffect(shakeUntil) {
+        if (System.currentTimeMillis() < shakeUntil) {
+            val magnitude = 6.dp
+            while (System.currentTimeMillis() < shakeUntil) {
+                shakeOffset = with(density) {
+                    Offset(
+                        ((Math.random().toFloat() * 2 - 1) * magnitude.toPx()),
+                        ((Math.random().toFloat() * 2 - 1) * magnitude.toPx())
+                    )
+                }
+                delay(20)
+            }
+            shakeOffset = Offset.Zero
+        }
+    }
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -140,19 +158,9 @@ fun JewelindaScreen(
                     if (gameViewModel.isHapticsEnabled) {
                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     }
-                    // Screen shake for 300ms
-                    val startTime = System.currentTimeMillis()
-                    while (System.currentTimeMillis() - startTime < 300) {
-                        val magnitude = 6.dp
-                        shakeOffset = with(density) {
-                            Offset(
-                                ((Math.random().toFloat() * 2 - 1) * magnitude.toPx()),
-                                ((Math.random().toFloat() * 2 - 1) * magnitude.toPx())
-                            )
-                        }
-                        delay(20)
-                    }
-                    shakeOffset = Offset.Zero
+                    // Add 300ms to shake duration, capped at 600ms from now
+                    val now = System.currentTimeMillis()
+                    shakeUntil = (maxOf(shakeUntil, now) + 300L).coerceAtMost(now + 600L)
                 }
                 else -> {}
             }

@@ -261,6 +261,9 @@ class JewelindaViewModel(application: Application) : AndroidViewModel(applicatio
                                 }
                             }
                         }
+                        // Emit board so bombs are visible before explosion starts
+                        _board.value = boardCopy.copy()
+                        delay(300)
                     }
 
                     val triggeredBombs = mutableSetOf<Pair<Int, Int>>()
