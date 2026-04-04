@@ -118,8 +118,8 @@ fun GameGrid(
                         onDragStart = { offset ->
                             if (!isProcessing) {
                                 val gemSizePx = size.width.toFloat() / 8f
-                                val x = (offset.x / gemSizePx).toInt()
-                                val y = (offset.y / gemSizePx).toInt()
+                                val x = (offset.x / gemSizePx).toInt().coerceIn(0, GameBoard.WIDTH - 1)
+                                val y = (offset.y / gemSizePx).toInt().coerceIn(0, GameBoard.HEIGHT - 1)
                                 if (x in 0 until GameBoard.WIDTH && y in 0 until GameBoard.HEIGHT) {
                                     if (board.getFrostLevel(x, y) == 0) {
                                         sourceGemCoords = Pair(x, y)
