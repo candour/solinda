@@ -90,7 +90,7 @@ fun CalculatorScreen(
 
                 // Memory Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryClear() } }
@@ -104,7 +104,7 @@ fun CalculatorScreen(
 
                 // Row 1
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onACClick() } }
@@ -122,7 +122,7 @@ fun CalculatorScreen(
 
                 // Row 2
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("7") } }
@@ -140,7 +140,7 @@ fun CalculatorScreen(
 
                 // Row 3
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("4") } }
@@ -158,7 +158,7 @@ fun CalculatorScreen(
 
                 // Row 4
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("1") } }
@@ -176,7 +176,7 @@ fun CalculatorScreen(
 
                 // Row 5
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
                 ) {
                     CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { onButtonClick { viewModel.onNumberClick("0") } }

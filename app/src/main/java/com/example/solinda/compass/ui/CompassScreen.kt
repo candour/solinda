@@ -90,26 +90,36 @@ fun CompassScreen(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
-                    .then(
-                        if (isPortrait) Modifier.offset(y = maxHeight * 0.1f) else Modifier
-                    )
+                    .statusBarsPadding()
             ) {
                 Text("Options")
             }
 
             // Compass Container
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(32.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                CompassDial(rotation = -animatedAzimuth.value)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CompassDial(
+                        rotation = -animatedAzimuth.value,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Current heading text
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "${azimuth.roundToInt()}°",
@@ -127,11 +137,14 @@ fun CompassScreen(
 }
 
 @Composable
-fun CompassDial(rotation: Float) {
+fun CompassDial(
+    rotation: Float,
+    modifier: Modifier = Modifier
+) {
     val textMeasurer = rememberTextMeasurer()
     val onBackground = MaterialTheme.colorScheme.onBackground
 
-    Canvas(modifier = Modifier.size(300.dp)) {
+    Canvas(modifier = modifier.aspectRatio(1f)) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2
         val strokeWidth = 4.dp.toPx()

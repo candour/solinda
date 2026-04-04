@@ -172,7 +172,8 @@ fun JewelindaScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val isLandscape = maxWidth > maxHeight
+            // Use a threshold for landscape to handle square screens better
+            val isLandscape = maxWidth > maxHeight * 1.2f
 
             if (isLandscape) {
                 LandscapeLayout(
