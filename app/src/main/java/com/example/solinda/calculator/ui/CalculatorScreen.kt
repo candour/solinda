@@ -78,95 +78,106 @@ fun CalculatorScreen(
             }
         }
 
-        val memoryRow = @Composable {
+        val memoryRow = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryClear() } }
-                CalculatorButton(stringResource(R.string.mr), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryRecall() } }
-                CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryAdd() } }
-                CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemorySubtract() } }
-                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onBackspaceClick() } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                CalculatorButton(stringResource(R.string.mc), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemoryClear() } }
+                CalculatorButton(stringResource(R.string.mr), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemoryRecall() } }
+                CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemoryAdd() } }
+                CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemorySubtract() } }
+                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onBackspaceClick() } }
             }
         }
 
-        val row1 = @Composable {
+        val row1 = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onACClick() } }
-                CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPlusMinusClick() } }
-                CalculatorButton(stringResource(R.string.percentage), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPercentageClick() } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                CalculatorButton(stringResource(R.string.ac), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onACClick() } }
+                CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onPlusMinusClick() } }
+                CalculatorButton(stringResource(R.string.percentage), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onPercentageClick() } }
                 CalculatorButton(
                     stringResource(R.string.divide),
                     Color(0xFFFFA500),
-                    Modifier.weight(1f),
-                    isHighlighted = viewModel.pendingOperator == "/"
+                    btnModifier,
+                    isHighlighted = viewModel.pendingOperator == "/",
+                    matchHeightConstraintsFirst = isLandscape
                 ) { onButtonClick { viewModel.onOperatorClick("/") } }
             }
         }
 
-        val row2 = @Composable {
+        val row2 = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("7") } }
-                CalculatorButton("8", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("8") } }
-                CalculatorButton("9", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("9") } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                CalculatorButton("7", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("7") } }
+                CalculatorButton("8", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("8") } }
+                CalculatorButton("9", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("9") } }
                 CalculatorButton(
                     stringResource(R.string.multiply),
                     Color(0xFFFFA500),
-                    Modifier.weight(1f),
-                    isHighlighted = viewModel.pendingOperator == "*"
+                    btnModifier,
+                    isHighlighted = viewModel.pendingOperator == "*",
+                    matchHeightConstraintsFirst = isLandscape
                 ) { onButtonClick { viewModel.onOperatorClick("*") } }
             }
         }
 
-        val row3 = @Composable {
+        val row3 = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("4") } }
-                CalculatorButton("5", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("5") } }
-                CalculatorButton("6", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("6") } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                CalculatorButton("4", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("4") } }
+                CalculatorButton("5", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("5") } }
+                CalculatorButton("6", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("6") } }
                 CalculatorButton(
                     stringResource(R.string.subtract),
                     Color(0xFFFFA500),
-                    Modifier.weight(1f),
-                    isHighlighted = viewModel.pendingOperator == "-"
+                    btnModifier,
+                    isHighlighted = viewModel.pendingOperator == "-",
+                    matchHeightConstraintsFirst = isLandscape
                 ) { onButtonClick { viewModel.onOperatorClick("-") } }
             }
         }
 
-        val row4 = @Composable {
+        val row4 = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("1") } }
-                CalculatorButton("2", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("2") } }
-                CalculatorButton("3", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("3") } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                CalculatorButton("1", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("1") } }
+                CalculatorButton("2", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("2") } }
+                CalculatorButton("3", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("3") } }
                 CalculatorButton(
                     stringResource(R.string.add),
                     Color(0xFFFFA500),
-                    Modifier.weight(1f),
-                    isHighlighted = viewModel.pendingOperator == "+"
+                    btnModifier,
+                    isHighlighted = viewModel.pendingOperator == "+",
+                    matchHeightConstraintsFirst = isLandscape
                 ) { onButtonClick { viewModel.onOperatorClick("+") } }
             }
         }
 
-        val row5 = @Composable {
+        val row5 = @Composable { modifier: Modifier ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing, Alignment.CenterHorizontally)
             ) {
-                CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { onButtonClick { viewModel.onNumberClick("0") } }
-                CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onDecimalClick() } }
-                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), Modifier.weight(1f)) { onButtonClick { viewModel.onEqualsClick() } }
+                val btnModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(1f)
+                val zeroModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(2f)
+                CalculatorButton("0", Color(0xFF333333), zeroModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("0") } }
+                CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onDecimalClick() } }
+                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onEqualsClick() } }
             }
         }
 
@@ -182,27 +193,32 @@ fun CalculatorScreen(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = onOptionsClick,
-                            modifier = Modifier.align(Alignment.TopEnd)
-                        ) {
-                            Text(stringResource(R.string.options))
+                    Column(
+                        modifier = Modifier.weight(2f),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = onOptionsClick,
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Text(stringResource(R.string.options))
+                            }
                         }
+                        displaySection()
                     }
-                    displaySection()
-                    memoryRow()
-                    row1()
+                    memoryRow(Modifier.weight(1f))
+                    row1(Modifier.weight(1f))
                 }
 
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    row2()
-                    row3()
-                    row4()
-                    row5()
+                    row2(Modifier.weight(1f))
+                    row3(Modifier.weight(1f))
+                    row4(Modifier.weight(1f))
+                    row5(Modifier.weight(1f))
                 }
             }
         } else {
@@ -229,17 +245,17 @@ fun CalculatorScreen(
                 ) {
                     displaySection()
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    memoryRow()
+                    memoryRow(Modifier)
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    row1()
+                    row1(Modifier)
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    row2()
+                    row2(Modifier)
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    row3()
+                    row3(Modifier)
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    row4()
+                    row4(Modifier)
                     Spacer(modifier = Modifier.height(buttonSpacing))
-                    row5()
+                    row5(Modifier)
                 }
             }
         }
@@ -253,6 +269,7 @@ fun CalculatorButton(
     modifier: Modifier = Modifier,
     textColor: Color = Color.White,
     isHighlighted: Boolean = false,
+    matchHeightConstraintsFirst: Boolean = false,
     onClick: () -> Unit
 ) {
     val finalBackgroundColor = if (isHighlighted) Color(0xFFFFC0CB) else backgroundColor
@@ -260,7 +277,10 @@ fun CalculatorButton(
 
     Box(
         modifier = modifier
-            .aspectRatio(if (text == "0") 2.1f else 1f) // Slightly wider 0 to prevent overlap
+            .aspectRatio(
+                if (text == "0") 2.1f else 1f,
+                matchHeightConstraintsFirst = matchHeightConstraintsFirst
+            )
             .clip(CircleShape)
             .background(finalBackgroundColor)
             .clickable { onClick() },
@@ -269,7 +289,7 @@ fun CalculatorButton(
         Text(
             text = text,
             color = finalTextColor,
-            fontSize = 24.sp, // Reduced font size slightly
+            fontSize = if (matchHeightConstraintsFirst) 16.sp else 24.sp,
             fontWeight = FontWeight.Medium
         )
     }
