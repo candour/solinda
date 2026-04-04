@@ -1,5 +1,6 @@
 package com.example.solinda.calculator.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import com.example.solinda.R
 import com.example.solinda.calculator.CalculatorViewModel
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import com.example.solinda.GameViewModel
 
@@ -29,6 +31,8 @@ fun CalculatorScreen(
     onOptionsClick: () -> Unit
 ) {
     val view = LocalView.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val onButtonClick: (() -> Unit) -> Unit = { action ->
         action()
@@ -41,25 +45,11 @@ fun CalculatorScreen(
         modifier = Modifier.fillMaxSize(),
         color = Color.Black
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .statusBarsPadding()
-        ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = onOptionsClick,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    Text(stringResource(R.string.options))
-                }
-            }
+        val buttonSpacing = 8.dp
 
+        val displaySection = @Composable {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.Bottom
             ) {
                 if (viewModel.memoryDisplayText.isNotEmpty()) {
@@ -80,108 +70,176 @@ fun CalculatorScreen(
                         .fillMaxWidth()
                         .padding(bottom = 16.dp, top = 8.dp),
                     textAlign = TextAlign.End,
-                    fontSize = 64.sp,
+                    fontSize = if (isLandscape) 48.sp else 64.sp,
                     color = Color.White,
                     fontWeight = FontWeight.Light,
                     maxLines = 1
                 )
+            }
+        }
 
-                val buttonSpacing = 8.dp
+        val memoryRow = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryClear() } }
+                CalculatorButton(stringResource(R.string.mr), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryRecall() } }
+                CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryAdd() } }
+                CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemorySubtract() } }
+                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onBackspaceClick() } }
+            }
+        }
 
-                // Memory Row
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+        val row1 = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onACClick() } }
+                CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPlusMinusClick() } }
+                CalculatorButton(stringResource(R.string.percentage), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPercentageClick() } }
+                CalculatorButton(
+                    stringResource(R.string.divide),
+                    Color(0xFFFFA500),
+                    Modifier.weight(1f),
+                    isHighlighted = viewModel.pendingOperator == "/"
+                ) { onButtonClick { viewModel.onOperatorClick("/") } }
+            }
+        }
+
+        val row2 = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("7") } }
+                CalculatorButton("8", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("8") } }
+                CalculatorButton("9", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("9") } }
+                CalculatorButton(
+                    stringResource(R.string.multiply),
+                    Color(0xFFFFA500),
+                    Modifier.weight(1f),
+                    isHighlighted = viewModel.pendingOperator == "*"
+                ) { onButtonClick { viewModel.onOperatorClick("*") } }
+            }
+        }
+
+        val row3 = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("4") } }
+                CalculatorButton("5", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("5") } }
+                CalculatorButton("6", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("6") } }
+                CalculatorButton(
+                    stringResource(R.string.subtract),
+                    Color(0xFFFFA500),
+                    Modifier.weight(1f),
+                    isHighlighted = viewModel.pendingOperator == "-"
+                ) { onButtonClick { viewModel.onOperatorClick("-") } }
+            }
+        }
+
+        val row4 = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("1") } }
+                CalculatorButton("2", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("2") } }
+                CalculatorButton("3", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("3") } }
+                CalculatorButton(
+                    stringResource(R.string.add),
+                    Color(0xFFFFA500),
+                    Modifier.weight(1f),
+                    isHighlighted = viewModel.pendingOperator == "+"
+                ) { onButtonClick { viewModel.onOperatorClick("+") } }
+            }
+        }
+
+        val row5 = @Composable {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+            ) {
+                CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { onButtonClick { viewModel.onNumberClick("0") } }
+                CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onDecimalClick() } }
+                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), Modifier.weight(1f)) { onButtonClick { viewModel.onEqualsClick() } }
+            }
+        }
+
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .statusBarsPadding(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    CalculatorButton(stringResource(R.string.mc), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryClear() } }
-                    CalculatorButton(stringResource(R.string.mr), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryRecall() } }
-                    CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemoryAdd() } }
-                    CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onMemorySubtract() } }
-                    CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, Modifier.weight(1f)) { onButtonClick { viewModel.onBackspaceClick() } }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = onOptionsClick,
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) {
+                            Text(stringResource(R.string.options))
+                        }
+                    }
+                    displaySection()
+                    memoryRow()
+                    row1()
                 }
 
-                Spacer(modifier = Modifier.height(buttonSpacing))
-
-                // Row 1
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    CalculatorButton(stringResource(R.string.ac), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onACClick() } }
-                    CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPlusMinusClick() } }
-                    CalculatorButton(stringResource(R.string.percentage), Color.LightGray, Modifier.weight(1f), Color.Black) { onButtonClick { viewModel.onPercentageClick() } }
-                    CalculatorButton(
-                        stringResource(R.string.divide),
-                        Color(0xFFFFA500),
-                        Modifier.weight(1f),
-                        isHighlighted = viewModel.pendingOperator == "/"
-                    ) { onButtonClick { viewModel.onOperatorClick("/") } }
+                    row2()
+                    row3()
+                    row4()
+                    row5()
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .statusBarsPadding()
+            ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = onOptionsClick,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    ) {
+                        Text(stringResource(R.string.options))
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(buttonSpacing))
-
-                // Row 2
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Bottom
                 ) {
-                    CalculatorButton("7", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("7") } }
-                    CalculatorButton("8", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("8") } }
-                    CalculatorButton("9", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("9") } }
-                    CalculatorButton(
-                        stringResource(R.string.multiply),
-                        Color(0xFFFFA500),
-                        Modifier.weight(1f),
-                        isHighlighted = viewModel.pendingOperator == "*"
-                    ) { onButtonClick { viewModel.onOperatorClick("*") } }
-                }
-
-                Spacer(modifier = Modifier.height(buttonSpacing))
-
-                // Row 3
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
-                ) {
-                    CalculatorButton("4", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("4") } }
-                    CalculatorButton("5", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("5") } }
-                    CalculatorButton("6", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("6") } }
-                    CalculatorButton(
-                        stringResource(R.string.subtract),
-                        Color(0xFFFFA500),
-                        Modifier.weight(1f),
-                        isHighlighted = viewModel.pendingOperator == "-"
-                    ) { onButtonClick { viewModel.onOperatorClick("-") } }
-                }
-
-                Spacer(modifier = Modifier.height(buttonSpacing))
-
-                // Row 4
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
-                ) {
-                    CalculatorButton("1", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("1") } }
-                    CalculatorButton("2", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("2") } }
-                    CalculatorButton("3", Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onNumberClick("3") } }
-                    CalculatorButton(
-                        stringResource(R.string.add),
-                        Color(0xFFFFA500),
-                        Modifier.weight(1f),
-                        isHighlighted = viewModel.pendingOperator == "+"
-                    ) { onButtonClick { viewModel.onOperatorClick("+") } }
-                }
-
-                Spacer(modifier = Modifier.height(buttonSpacing))
-
-                // Row 5
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(buttonSpacing)
-                ) {
-                    CalculatorButton("0", Color(0xFF333333), Modifier.weight(2f)) { onButtonClick { viewModel.onNumberClick("0") } }
-                    CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), Modifier.weight(1f)) { onButtonClick { viewModel.onDecimalClick() } }
-                    CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), Modifier.weight(1f)) { onButtonClick { viewModel.onEqualsClick() } }
+                    displaySection()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    memoryRow()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    row1()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    row2()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    row3()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    row4()
+                    Spacer(modifier = Modifier.height(buttonSpacing))
+                    row5()
                 }
             }
         }
