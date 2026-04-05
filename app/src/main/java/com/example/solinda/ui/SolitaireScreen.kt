@@ -53,10 +53,10 @@ fun SolitaireScreen(
     val isLandscape = screenWidth > screenHeight
     val cardWidth = remember(screenWidth, screenHeight, viewModel.gameType, viewModel.leftMargin, viewModel.rightMargin, viewModel.leftMarginLandscape, viewModel.rightMarginLandscape) {
         if (screenWidth > 0) {
-            val numPiles = viewModel.tableau.size.coerceAtLeast(7)
+            val numPiles = if (viewModel.gameType == GameType.FREECELL) 8 else 7
             val leftMarginPx = with(density) { (if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin).dp.toPx() }
             val rightMarginPx = with(density) { (if (isLandscape) viewModel.rightMarginLandscape else viewModel.rightMargin).dp.toPx() }
-            val totalSpacing = (numPiles - 1) * with(density) { 8.dp.toPx() }
+            val totalSpacing = (numPiles - 1) * 2f // 2 pixels spacing
             (screenWidth - leftMarginPx - rightMarginPx - totalSpacing) / numPiles
         } else 0f
     }
@@ -72,7 +72,8 @@ fun SolitaireScreen(
     val animatingCards = remember { mutableStateListOf<Card>() }
 
     val leftMargin = (if (isLandscape) viewModel.leftMarginLandscape else viewModel.leftMargin).dp
-    val spacing = 8.dp
+    val spacingPx = 2f
+    val spacing = with(density) { spacingPx.toDp() }
 
     val cardWidthDp = with(density) { cardWidth.toDp() }
     val cardHeightDp = with(density) { cardHeight.toDp() }
@@ -80,7 +81,7 @@ fun SolitaireScreen(
     fun getPileX(pile: Pile, index: Int): Float {
         return with(density) {
             val startX = leftMargin.toPx()
-            val pileSpacing = (cardWidth + spacing.toPx())
+            val pileSpacing = (cardWidth + spacingPx)
             when (pile.type) {
                 PileType.STOCK -> startX
                 PileType.WASTE -> startX + pileSpacing
@@ -570,11 +571,27 @@ fun SolitaireScreen(
                                 pile.cards.forEachIndexed { cardIndex, card ->
                                     if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
                                         val revealOffset = cardIndex * (cardHeight * viewModel.tableauCardRevealFactor)
+
+                                        val isDimmed = if (viewModel.gameType == GameType.FREECELL) {
+                                            val stack = pile.cards.subList(cardIndex, pile.cards.size)
+                                            val isValidSequence = viewModel.isValidTableauStack(stack)
+
+                                            if (!isValidSequence) {
+                                                true
+                                            } else {
+                                                val emptyFreeCells = viewModel.freeCells.count { it.isEmpty() }
+                                                val emptyTableauPiles = viewModel.tableau.count { it.isEmpty() && it != pile }
+                                                val maxStackSize = (1 + emptyFreeCells) * (1 shl emptyTableauPiles)
+                                                stack.size > maxStackSize
+                                            }
+                                        } else false
+
                                         CardComponent(
                                             card = card,
                                             modifier = Modifier
                                                 .offset(y = with(density) { revealOffset.toDp() })
-                                                .size(cardWidthDp, cardHeightDp)
+                                                .size(cardWidthDp, cardHeightDp),
+                                            isDimmed = isDimmed
                                         )
                                     }
                                 }
