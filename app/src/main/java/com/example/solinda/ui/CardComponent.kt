@@ -38,7 +38,7 @@ fun CardComponent(
     ) {
         if (resourceId != 0) {
             val colorFilter = if (isDimmed) {
-                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.3f) })
+                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.7f) })
             } else null
 
             Image(
