@@ -88,7 +88,9 @@ fun CalculatorScreen(
                 CalculatorButton(stringResource(R.string.mr), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemoryRecall() } }
                 CalculatorButton(stringResource(R.string.m_plus), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemoryAdd() } }
                 CalculatorButton(stringResource(R.string.m_minus), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onMemorySubtract() } }
-                CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onBackspaceClick() } }
+                if (!isLandscape) {
+                    CalculatorButton(stringResource(R.string.backspace), Color.DarkGray, btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onBackspaceClick() } }
+                }
             }
         }
 
@@ -101,13 +103,17 @@ fun CalculatorScreen(
                 CalculatorButton(stringResource(R.string.ac), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onACClick() } }
                 CalculatorButton(stringResource(R.string.plus_minus), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onPlusMinusClick() } }
                 CalculatorButton(stringResource(R.string.percentage), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onPercentageClick() } }
-                CalculatorButton(
-                    stringResource(R.string.divide),
-                    Color(0xFFFFA500),
-                    btnModifier,
-                    isHighlighted = viewModel.pendingOperator == "/",
-                    matchHeightConstraintsFirst = isLandscape
-                ) { onButtonClick { viewModel.onOperatorClick("/") } }
+                if (isLandscape) {
+                    CalculatorButton(stringResource(R.string.backspace), Color.LightGray, btnModifier, Color.Black, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onBackspaceClick() } }
+                } else {
+                    CalculatorButton(
+                        stringResource(R.string.divide),
+                        Color(0xFFFFA500),
+                        btnModifier,
+                        isHighlighted = viewModel.pendingOperator == "/",
+                        matchHeightConstraintsFirst = isLandscape
+                    ) { onButtonClick { viewModel.onOperatorClick("/") } }
+                }
             }
         }
 
@@ -139,13 +145,23 @@ fun CalculatorScreen(
                 CalculatorButton("4", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("4") } }
                 CalculatorButton("5", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("5") } }
                 CalculatorButton("6", Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("6") } }
-                CalculatorButton(
-                    stringResource(R.string.subtract),
-                    Color(0xFFFFA500),
-                    btnModifier,
-                    isHighlighted = viewModel.pendingOperator == "-",
-                    matchHeightConstraintsFirst = isLandscape
-                ) { onButtonClick { viewModel.onOperatorClick("-") } }
+                if (isLandscape) {
+                    CalculatorButton(
+                        stringResource(R.string.divide),
+                        Color(0xFFFFA500),
+                        btnModifier,
+                        isHighlighted = viewModel.pendingOperator == "/",
+                        matchHeightConstraintsFirst = isLandscape
+                    ) { onButtonClick { viewModel.onOperatorClick("/") } }
+                } else {
+                    CalculatorButton(
+                        stringResource(R.string.subtract),
+                        Color(0xFFFFA500),
+                        btnModifier,
+                        isHighlighted = viewModel.pendingOperator == "-",
+                        matchHeightConstraintsFirst = isLandscape
+                    ) { onButtonClick { viewModel.onOperatorClick("-") } }
+                }
             }
         }
 
@@ -177,7 +193,18 @@ fun CalculatorScreen(
                 val zeroModifier = if (isLandscape) Modifier.fillMaxHeight() else Modifier.weight(2f)
                 CalculatorButton("0", Color(0xFF333333), zeroModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onNumberClick("0") } }
                 CalculatorButton(stringResource(R.string.dot), Color(0xFF333333), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onDecimalClick() } }
-                CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onEqualsClick() } }
+                if (isLandscape) {
+                    CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onEqualsClick() } }
+                    CalculatorButton(
+                        stringResource(R.string.subtract),
+                        Color(0xFFFFA500),
+                        btnModifier,
+                        isHighlighted = viewModel.pendingOperator == "-",
+                        matchHeightConstraintsFirst = isLandscape
+                    ) { onButtonClick { viewModel.onOperatorClick("-") } }
+                } else {
+                    CalculatorButton(stringResource(R.string.equals), Color(0xFFFFA500), btnModifier, matchHeightConstraintsFirst = isLandscape) { onButtonClick { viewModel.onEqualsClick() } }
+                }
             }
         }
 
@@ -278,7 +305,7 @@ fun CalculatorButton(
     Box(
         modifier = modifier
             .aspectRatio(
-                if (text == "0") 2.1f else 1f,
+                if (text == "0" && !matchHeightConstraintsFirst) 2.1f else 1f,
                 matchHeightConstraintsFirst = matchHeightConstraintsFirst
             )
             .clip(CircleShape)
