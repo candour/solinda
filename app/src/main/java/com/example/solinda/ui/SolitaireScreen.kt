@@ -28,6 +28,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+enum class InteractionType {
+    NONE, DRAGGING_CARD, SCROLLING, IGNORE
+}
+
 @Composable
 fun SolitaireScreen(
     viewModel: GameViewModel,
@@ -68,6 +72,7 @@ fun SolitaireScreen(
     var draggingFromPile by remember { mutableStateOf<Pile?>(null) }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var dragStartOffset by remember { mutableStateOf(Offset.Zero) }
+    var interactionType by remember { mutableStateOf(InteractionType.NONE) }
 
     val animatingCards = remember { mutableStateListOf<Card>() }
 
@@ -101,7 +106,7 @@ fun SolitaireScreen(
     fun getPileY(pile: Pile, index: Int, topMarginPx: Float, includeScroll: Boolean = true): Float {
         return if (pile.type == PileType.TABLEAU) {
             val scrollOffset = if (includeScroll) scrollState.value.toFloat() else 0f
-            topMarginPx + cardHeight + with(density) { 24.dp.toPx() } - scrollOffset
+            topMarginPx + cardHeight + with(density) { 6.dp.toPx() } - scrollOffset
         } else {
             topMarginPx
         }
@@ -261,75 +266,98 @@ fun SolitaireScreen(
             .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor, topMarginPx) {
                 detectDragGestures(
                     onDragStart = { offset ->
-                        val allPiles = mutableListOf<Pile>()
-                        allPiles.addAll(viewModel.tableau)
-                        allPiles.addAll(viewModel.foundations)
-                        allPiles.addAll(viewModel.freeCells)
-                        if (viewModel.gameType == GameType.KLONDIKE) {
-                            allPiles.addAll(viewModel.waste)
-                        }
-
-                        for (pile in allPiles) {
-                            val pileIndex = when (pile.type) {
-                                PileType.TABLEAU -> viewModel.tableau.indexOf(pile)
-                                PileType.FOUNDATION -> viewModel.foundations.indexOf(pile)
-                                PileType.FREE_CELL -> viewModel.freeCells.indexOf(pile)
-                                else -> 0
+                        // 1. Check if dragging in top area (non-scrollable area)
+                        if (offset.y < topMarginPx + cardHeight + with(density) { 6.dp.toPx() }) {
+                            // Check if hitting a card in foundations or freecells or stock/waste
+                            val topPiles = mutableListOf<Pile>()
+                            topPiles.addAll(viewModel.foundations)
+                            topPiles.addAll(viewModel.freeCells)
+                            if (viewModel.gameType == GameType.KLONDIKE) {
+                                viewModel.stock.firstOrNull()?.let { topPiles.add(it) }
+                                viewModel.waste.firstOrNull()?.let { topPiles.add(it) }
                             }
-                            val rect = getPileRect(pile, pileIndex, topMarginPx)
 
-                            if (pile.type == PileType.TABLEAU) {
-                                for (i in pile.cards.indices.reversed()) {
-                                    val card = pile.cards[i]
-                                    if (card.faceUp) {
-                                        val cardY = rect.top + i * (cardHeight * viewModel.tableauCardRevealFactor)
-                                        val cardRect = Rect(rect.left, cardY, rect.right, cardY + cardHeight)
-                                        if (cardRect.contains(offset)) {
-                                            val stack = viewModel.findValidSubStack(pile, i)
-                                            draggingStack = stack
-                                            draggingFromPile = pile
-                                            dragStartOffset = offset - Offset(rect.left, cardY)
-                                            dragPosition = offset - dragStartOffset
-                                            return@detectDragGestures
-                                        }
-                                    }
+                            for (pile in topPiles) {
+                                val pileIndex = when (pile.type) {
+                                    PileType.FOUNDATION -> viewModel.foundations.indexOf(pile)
+                                    PileType.FREE_CELL -> viewModel.freeCells.indexOf(pile)
+                                    else -> 0
                                 }
-                            } else {
+                                val rect = getPileRect(pile, pileIndex, topMarginPx)
                                 if (rect.contains(offset) && pile.cards.isNotEmpty()) {
                                     draggingStack = listOf(pile.cards.last())
                                     draggingFromPile = pile
                                     dragStartOffset = offset - Offset(rect.left, rect.top)
                                     dragPosition = offset - dragStartOffset
+                                    interactionType = InteractionType.DRAGGING_CARD
+                                    return@detectDragGestures
+                                }
+                            }
+                            // Otherwise, ignore drag in top area background
+                            interactionType = InteractionType.IGNORE
+                            return@detectDragGestures
+                        }
+
+                        // 2. Check if hitting a card in the tableau
+                        viewModel.tableau.forEachIndexed { pileIndex, pile ->
+                            val rect = getPileRect(pile, pileIndex, topMarginPx)
+                            for (i in pile.cards.indices.reversed()) {
+                                val card = pile.cards[i]
+                                val cardY = rect.top + i * (cardHeight * viewModel.tableauCardRevealFactor)
+                                val cardRect = Rect(rect.left, cardY, rect.right, cardY + cardHeight)
+                                if (cardRect.contains(offset)) {
+                                    if (card.faceUp) {
+                                        val stack = viewModel.findValidSubStack(pile, i)
+                                        if (stack.first() == card) {
+                                            draggingStack = stack
+                                            draggingFromPile = pile
+                                            dragStartOffset = offset - Offset(rect.left, cardY)
+                                            dragPosition = offset - dragStartOffset
+                                            interactionType = InteractionType.DRAGGING_CARD
+                                            return@detectDragGestures
+                                        }
+                                    }
+                                    // Hit a face-down card or unmovable card
+                                    interactionType = InteractionType.IGNORE
                                     return@detectDragGestures
                                 }
                             }
                         }
+
+                        // 3. Otherwise, it's a background drag in the tableau area
+                        interactionType = InteractionType.SCROLLING
                     },
                     onDrag = { change, dragAmount ->
-                        if (draggingStack != null) {
-                            dragPosition += dragAmount
-
-                            val y = change.position.y
-                            val edgeThreshold = with(density) { 60.dp.toPx() }
-                            val speed = with(density) { 10.dp.toPx() }
-                            autoScrollSpeed = when {
-                                y < edgeThreshold -> -speed
-                                y > screenHeight - edgeThreshold -> speed
-                                else -> 0f
+                        when (interactionType) {
+                            InteractionType.DRAGGING_CARD -> {
+                                dragPosition += dragAmount
+                                val y = change.position.y
+                                val edgeThreshold = with(density) { 60.dp.toPx() }
+                                val speed = with(density) { 10.dp.toPx() }
+                                autoScrollSpeed = when {
+                                    y < edgeThreshold -> -speed
+                                    y > screenHeight - edgeThreshold -> speed
+                                    else -> 0f
+                                }
+                                change.consume()
                             }
-
-                            change.consume()
-                        } else {
-                            coroutineScope.launch {
-                                scrollState.scrollBy(-dragAmount.y)
+                            InteractionType.SCROLLING -> {
+                                coroutineScope.launch {
+                                    scrollState.scrollBy(-dragAmount.y)
+                                }
+                                change.consume()
                             }
+                            else -> { /* IGNORE or NONE */ }
                         }
                     },
                     onDragEnd = {
                         autoScrollSpeed = 0f
                         val stack = draggingStack
                         val fromPile = draggingFromPile
-                        if (stack != null && fromPile != null) {
+                        val currentInteraction = interactionType
+                        interactionType = InteractionType.NONE
+
+                        if (currentInteraction == InteractionType.DRAGGING_CARD && stack != null && fromPile != null) {
                             val dropCenter = dragPosition + Offset(cardWidth / 2, cardHeight / 2)
 
                             // Try foundations
@@ -378,6 +406,7 @@ fun SolitaireScreen(
                         autoScrollSpeed = 0f
                         draggingStack = null
                         draggingFromPile = null
+                        interactionType = InteractionType.NONE
                     }
                 )
             }
@@ -502,7 +531,7 @@ fun SolitaireScreen(
                 // Tableau
                 Box(
                     modifier = Modifier
-                        .padding(top = topMarginDp + cardHeightDp + 24.dp)
+                        .padding(top = topMarginDp + cardHeightDp + 6.dp)
                         .fillMaxSize()
                         .verticalScroll(scrollState)
                 ) {
