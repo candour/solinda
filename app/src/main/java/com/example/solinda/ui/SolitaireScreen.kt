@@ -397,7 +397,6 @@ fun SolitaireScreen(
                         }
                     }
                 }
-
             }
 
             // Interaction layer - Moved after the game elements (Tableau/Foundations) but before controls/overlays
@@ -530,6 +529,8 @@ fun SolitaireScreen(
                         }
                     )
                 }
+            )
+            Box(modifier = Modifier.fillMaxSize()
                 .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor, topMarginPx) {
                     detectDragGestures(
                         onDragStart = { offset ->
@@ -692,10 +693,11 @@ fun SolitaireScreen(
                         }
                     )
                 }
+            )
 
-                // Controls
-                val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
-                if (isPortrait) {
+            // Controls
+            val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
+            if (isPortrait) {
                     Column(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -804,4 +806,3 @@ fun SolitaireScreen(
             }
         }
     }
-}
