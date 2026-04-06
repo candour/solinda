@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This document provides instructions for AI agents working on the Solinda codebase.
+This document provides technical instructions, architectural guidelines, and lessons learned for AI agents working on the Solinda codebase.
 
 ## Coding Conventions
 
@@ -13,37 +13,57 @@ This project follows the official Kotlin and Android coding conventions. Please 
 
 When adding new methods, especially to ViewModel or game logic classes, please add corresponding unit tests to ensure they can be invoked and behave as expected. This helps prevent regressions and build failures.
 
-
-# Agent Instructions: Project "Gemini Jewel" Mode
-
-## Context & Scope
-I am adding a "Match-3" (Bejeweled clone) game mode to an existing Android application. 
-- **Core Principle:** DO NOT modify or delete existing application code unless explicitly requested for integration (e.g., adding a button to the main menu).
-- **Namespace:** All new code must reside in the package `com.example.solinda.jewelinda`.
-- **UI Framework:** Jetpack Compose.
-
 ## Architectural Guidelines
-1. **Modularity:** Keep Game Logic (Engine) strictly separate from the UI (Compose).
-2. **State Management:** Use a `ViewModel` with `StateFlow` to represent the 8x8 grid.
-3. **Performance:** Use `Modifier.offset` and `animateIntOffsetAsState` for gem movement to ensure 60fps animations.
-4. **Resources:** Use placeholders or Material Design Icons for gems initially; keep assets organized in `res/drawable/game`.
 
-## Phase 1: Infrastructure & Data Model
-- Create `Gem.kt` data class: `id` (UUID), `type` (Enum), `posX` (Int), `posY` (Int).
-- Create `GameBoard.kt`: Logic for an 8x8 array.
-- Implement `initBoard()`: Fill the board with random gems ensuring no 3-in-a-row matches exist on startup.
+### State Management & Persistence
+*   **MVVM:** The application follows a strict MVVM architecture. UI logic resides in ViewModels, which interact with a Repository for data persistence.
+*   **Reactive UI:** Use Compose observable state (`mutableStateOf`, `mutableStateListOf`, `mutableIntStateOf`) to ensure the UI reacts to model changes.
+*   **Serialization:** Game state is persisted using **Gson**. Ensure all new data models are serializable and properly integrated into the top-level `GameState`.
+*   **Separation of Concerns:** State models are organized into separate files (e.g., `SolitaireData.kt`, `JewelindaData.kt`, `CalculatorData.kt`, `CommonSettings.kt`, `PileState.kt`, `CardState.kt`) to avoid large, monolithic files and improve maintainability.
 
-## Phase 2: UI Components
-- **GemComponent.kt:** A composable that renders a single gem based on its `type`. Must support absolute positioning via `Modifier.offset`.
-- **GameGrid.kt:** A `BoxWithConstraints` container that iterates through the board and renders `GemComponent`s.
-- **Input Handling:** Implement a swipe gesture detector (detecting North, South, East, West) to trigger gem swap attempts.
+### Centralized Constants
+*   Core game values such as dimensions, delays, thresholds, margins, and reveal factors are centralized in `Constants.kt`.
+*   Standard card animation duration is set to `ANIMATION_DURATION_MS = 150ms` for a smooth, responsive feel.
 
-## Phase 3: Game Engine Logic
-- **Swap Logic:** `swapGems(posA, posB)` with rollback if no match is formed.
-- **Match Detection:** A function to scan the grid for horizontal and vertical lines of 3+.
-- **Gravity & Refill:** Logic to shift gems down to fill null spaces and spawn new gems at $y < 0$.
+### UI & Layout
+*   **Jetpack Compose:** The entire application is built using Jetpack Compose.
+*   **Edge-to-Edge:** Use `enableEdgeToEdge()` in `MainActivity` and apply `Modifier.safeDrawingPadding()` to handle system insets correctly.
+*   **Adaptive Layouts:** Orientation detection is handled using `LocalConfiguration.current.orientation`. Always ensure screens function correctly in both Portrait and Landscape modes.
+    *   **Solitaire:** Card heights vary by orientation (1.2x width in landscape, 1.8x in portrait).
+    *   **Calculator:** Landscape mode uses a two-column layout with specific button weights and order.
+    *   **Compass:** Buttons are positioned at the top-right with a 10% vertical offset for consistency.
+*   **Precise Alignment:** In `SolitaireScreen.kt`, use `Box` with explicit `Modifier.offset` for top-area elements (Stock, Waste, FreeCells, Foundations) to ensure alignment with tableau columns.
+
+### Haptic Feedback
+*   Haptic feedback is controlled by `viewModel.isHapticsEnabled`.
+*   **Jewelinda:** `VIRTUAL_KEY` for swaps/matches, `LONG_PRESS` for explosions.
+*   **Solitaire/FreeCell:** `VIRTUAL_KEY` for drops, `CLOCK_TICK` for hover.
+*   **Calculator:** `KEYBOARD_TAP` on all button clicks.
+*   **Compass:** `KEYBOARD_TAP` when azimuth hits 0° (constrained by a 1-second cooldown).
+
+## Game-Specific Logic & Lessons Learned
+
+### Solitaire (Klondike & FreeCell)
+*   **Animations:** Use `Animatable`. To prevent flickering, defer model updates until the animation completes or use a `skipModelUpdate` flag in the ViewModel.
+*   **Foundation Alignment:** Klondike foundations align with columns 4-7, and FreeCell foundations align with columns 5-8.
+*   **Auto-Complete:** Handled recursively in the UI layer (`SolitaireScreen.kt`) via `handleAutoComplete` to manage chain reaction animation timing.
+*   **Scrolling:** Tableau uses `Modifier.verticalScroll`. Hit detection (`getPileRect`) must account for the current `scrollState.value`.
+
+### Jewelinda
+*   **Gem Animations:** Uses nested `graphicsLayer` modifiers. The outer layer applies squash-and-stretch (bottom-center anchor: `0.5f, 1f`), and the inner layer handles rotation/pulse (true center: `0.5f, 0.5f`).
+*   **Screen Shake:** Capped at 600ms. Individual explosions trigger a 300ms shake at 6dp intensity.
+*   **Hypergems:** Clear all gems of a target color directly. This is a non-explosive activation to ensure clarity and performance.
+*   **Particle Engine:** Uses a fixed pool of 75 particles for performance optimization. Bursts are capped at 6 particles per event.
+
+### Calculator
+*   **Input Limits:** Strictly enforces a 10-character limit for both input and results.
+*   **Sequential Logic:** Resets `storedValue` if a number is input when `pendingOperator` is null and `isNewInput` is true.
+*   **Visual Highlights:** Active operators are highlighted with a pink background (`0xFFFFC0CB`).
+
+### Compass
+*   **Needle Animation:** Uses `Animatable` with manual delta calculation to ensure the needle takes the shortest path across the 0°/360° point.
 
 ## Safety Constraints
-- Never perform a `find-and-replace` across the entire project.
-- Always check `MainActivity` navigation before adding new Intent filters.
-
+*   Always enter a "deep planning mode" before modifying code: interact via `request_user_input` to fully understand goals.
+*   Never perform a find-and-replace across the entire project without careful manual review.
+*   Before submitting changes, always run all relevant tests and verify that the application builds and runs as expected.

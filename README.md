@@ -1,6 +1,6 @@
 # Solinda
 
-Solinda is a comprehensive Android gaming suite that combines classic card games with a modern, high-energy Match-3 puzzle experience. Designed for smooth performance and high-quality visuals, Solinda offers a variety of ways to play and challenge yourself.
+Solinda is a comprehensive Android gaming suite that combines classic card games with a modern, high-energy Match-3 puzzle experience, a functional calculator, and a precise compass. Designed for smooth performance and high-quality visuals, Solinda offers a variety of ways to play and challenge yourself.
 
 ## Game Modes
 
@@ -10,19 +10,27 @@ Enjoy the quintessential card games with a clean, intuitive interface optimized 
 *   **FreeCell Solitaire:** A highly strategic variant where nearly every deal is a puzzle waiting to be solved. Use your four free cells wisely to clear the board.
 
 ### 💎 Jewelinda
-Dive into a vibrant Match-3 adventure featuring deep mechanics and explosive gameplay.
+Dive into a vibrant Match-3 adventure featuring deep mechanics and satisfying gameplay.
 *   **Innovative Objectives:**
     *   **Color Collection:** Match and collect specific gems to reach your target.
     *   **Frost Clearance:** Break through layers of "Cracked Ice" by matching gems on frosted tiles.
-    *   **Hybrid Levels:** Experience levels that combine multiple objectives for ultimate challenge.
 *   **Powerful Special Gems:**
     *   **Bombs:** Form a 4-gem match to create a Bomb. Detonate it to clear a 3x3 area!
-    *   **Hypergems:** Create a match of 5 or more (or T/L shapes) to spawn a Hypergem. Swapping a Hypergem with any color triggers a mass explosion of all gems of that color on the board.
+    *   **Hypergems:** Create a match of 5 or more (or T/L shapes) to spawn a Hypergem. Swapping a Hypergem with any color triggers a mass clearing of all gems of that color on the board.
 *   **Dynamic Visuals:** Satisfying physics-based animations, "squash-and-stretch" effects upon impact, and a custom-built particle engine for spectacular match sequences.
 *   **Tactile Feedback:** Feel every match and explosion with carefully tuned haptic feedback.
 
-compass
-calculator 
+### 🧭 Compass
+A precise and classic navigational tool.
+*   **Rotating Dial:** A beautifully rendered rotating dial using Compose Canvas.
+*   **Shortest Path Navigation:** The needle intelligently finds the shortest path between orientations.
+*   **Haptic Guidance:** Provides tactile feedback when hitting North (0°) to aid navigation.
+
+### 🔢 Calculator
+A fully functional, elegant calculator for your daily needs.
+*   **Standard Operations:** Supports addition, subtraction, multiplication, and division.
+*   **Memory Functions:** Features MC, MR, M+, and M- for complex calculations.
+*   **Modern Interface:** Clean design with a clear 10-character display and active operator highlighting.
 
 ## Key Features
 *   **Adaptive Design:** Seamlessly switches between **Portrait** and **Landscape** layouts, ensuring a great experience on any device.
@@ -41,9 +49,9 @@ Solinda is currently in active development. You can try out the latest features 
 ## Technology Stack
 Solinda leverages the latest in Android development to provide a modern and performant experience:
 *   **Language:** Pure **Kotlin** for robust and expressive logic.
-*   **UI Framework:** **Jetpack Compose** powers the Jewelinda experience, while the Solitaire modes utilize high-performance custom View-based rendering.
+*   **UI Framework:** **Jetpack Compose** powers the entire application, providing a modern, declarative UI.
 *   **Architecture:** **MVVM** (Model-View-ViewModel) for a clean, testable codebase.
-*   **Graphics:** A custom-built **Particle Engine** for real-time visual effects and C++ integration via **NDK** for specialized performance needs.
+*   **Graphics:** A custom-built **Particle Engine** for real-time visual effects in Jewelinda.
 *   **Data Handling:** **Gson** for efficient state serialization and persistence.
 
 ## License
