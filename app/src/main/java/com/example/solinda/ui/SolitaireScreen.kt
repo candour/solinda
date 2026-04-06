@@ -103,137 +103,182 @@ fun SolitaireScreen(
         }
     }
 
-    fun getPileY(pile: Pile, index: Int, topMarginPx: Float, includeScroll: Boolean = true): Float {
-        return if (pile.type == PileType.TABLEAU) {
-            val scrollOffset = if (includeScroll) scrollState.value.toFloat() else 0f
-            topMarginPx + cardHeight + with(density) { 6.dp.toPx() } - scrollOffset
-        } else {
-            topMarginPx
-        }
-    }
-
-    fun getPileRect(pile: Pile, index: Int, topMarginPx: Float, includeScroll: Boolean = true): Rect {
+    fun getPileRect(pile: Pile, index: Int, topMarginPx: Float): Rect {
         val x = getPileX(pile, index)
-        val y = getPileY(pile, index, topMarginPx, includeScroll)
+        val y = when (pile.type) {
+            PileType.TABLEAU -> topMarginPx + cardHeight + with(density) { 6.dp.toPx() } - scrollState.value
+            else -> topMarginPx
+        }
         return Rect(x, y, x + cardWidth, y + cardHeight)
     }
 
-    fun animateCardMove(card: Card, startPos: Offset, endPos: Offset, onComplete: () -> Unit = {}) {
-        coroutineScope.launch {
-            val animatedCard = card.copy()
-            animatingCards.add(animatedCard)
-            animatedCard.x = startPos.x
-            animatedCard.y = startPos.y
-            val animatable = Animatable(startPos, Offset.VectorConverter)
-            animatable.animateTo(
-                endPos,
-                animationSpec = tween(durationMillis = Constants.ANIMATION_DURATION_MS)
-            ) {
-                animatedCard.x = value.x
-                animatedCard.y = value.y
-            }
-            animatingCards.remove(animatedCard)
-            onComplete()
-        }
-    }
-
     fun handleAutoComplete(topMarginPx: Float) {
-        if (viewModel.gameType == GameType.FREECELL || viewModel.isGameWinnable()) {
-            val result = viewModel.autoMoveToFoundation(skipModelUpdate = true)
-            if (result != null) {
-                val (card, fromPile, targetPile) = result
-                val fromIndex = when (fromPile.type) {
-                    PileType.TABLEAU -> viewModel.tableau.indexOf(fromPile)
-                    PileType.FREE_CELL -> viewModel.freeCells.indexOf(fromPile)
-                    PileType.WASTE -> viewModel.waste.indexOf(fromPile)
-                    else -> 0
+        // Auto-complete logic
+        coroutineScope.launch {
+            var moved: Boolean
+            do {
+                moved = false
+                val allPiles = mutableListOf<Pile>()
+                allPiles.addAll(viewModel.tableau)
+                if (viewModel.gameType == GameType.KLONDIKE) {
+                    allPiles.addAll(viewModel.waste)
                 }
-                val cardIndex = fromPile.cards.size - 1
-                val startX = getPileX(fromPile, fromIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-                val startY = getPileY(fromPile, fromIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+                allPiles.addAll(viewModel.freeCells)
 
-                val targetIndex = viewModel.foundations.indexOf(targetPile)
-                val endX = getPileX(targetPile, targetIndex)
-                val endY = getPileY(targetPile, targetIndex, topMarginPx, includeScroll = true)
+                for (fromPile in allPiles) {
+                    val card = fromPile.topCard() ?: continue
+                    if (!card.faceUp) continue
 
-                animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
-                    viewModel.autoMoveToFoundation(skipModelUpdate = false)
-                    handleAutoComplete(topMarginPx)
-                    viewModel.saveGame(repository)
+                    for (foundation in viewModel.foundations) {
+                        if (viewModel.canPlaceOnFoundation(card, foundation)) {
+                            val fromX = getPileX(fromPile, when (fromPile.type) {
+                                PileType.TABLEAU -> viewModel.tableau.indexOf(fromPile)
+                                PileType.FREE_CELL -> viewModel.freeCells.indexOf(fromPile)
+                                else -> 0
+                            })
+                            val fromY = when (fromPile.type) {
+                                PileType.TABLEAU -> topMarginPx + cardHeight + with(density) { 6.dp.toPx() } + (fromPile.cards.size - 1) * (cardHeight * viewModel.tableauCardRevealFactor) - scrollState.value
+                                PileType.WASTE -> topMarginPx
+                                else -> topMarginPx
+                            }
+                            val toX = getPileX(foundation, viewModel.foundations.indexOf(foundation))
+                            val toY = topMarginPx
+
+                            val animCard = card.copy()
+                            animCard.x = fromX
+                            animCard.y = fromY
+                            animatingCards.add(animCard)
+
+                            viewModel.moveToFoundation(fromPile, foundation)
+                            moved = true
+
+                            launch {
+                                val animX = Animatable(fromX)
+                                val animY = Animatable(fromY)
+                                launch { animX.animateTo(toX, tween(Constants.ANIMATION_DURATION_MS)) { animCard.x = value } }
+                                launch { animY.animateTo(toY, tween(Constants.ANIMATION_DURATION_MS)) { animCard.y = value } }
+                                delay(Constants.ANIMATION_DURATION_MS.toLong())
+                                animatingCards.remove(animCard)
+                            }
+                            break
+                        }
+                    }
+                    if (moved) break
                 }
-            }
+                if (moved) delay(Constants.ANIMATION_DURATION_MS.toLong() + 20)
+            } while (moved)
         }
     }
 
     fun handleAutoMove(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
-        val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-        val startY = getPileY(fromPile, pileIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+        // Priority 1: Foundations
+        viewModel.foundations.forEachIndexed { fIndex, foundation ->
+            if (viewModel.canPlaceOnFoundation(card, foundation)) {
+                val fromX = getPileX(fromPile, pileIndex)
+                val fromY = when (fromPile.type) {
+                    PileType.TABLEAU -> topMarginPx + cardHeight + with(density) { 6.dp.toPx() } + cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) - scrollState.value
+                    PileType.WASTE -> topMarginPx
+                    else -> topMarginPx
+                }
+                val toX = getPileX(foundation, fIndex)
+                val toY = topMarginPx
 
-        val targetPile = viewModel.autoMoveCard(card, fromPile, skipModelUpdate = true)
-        if (targetPile != null) {
-            val targetIndex = when (targetPile.type) {
-                PileType.TABLEAU -> viewModel.tableau.indexOf(targetPile)
-                PileType.FOUNDATION -> viewModel.foundations.indexOf(targetPile)
-                else -> 0
-            }
-            val endX = getPileX(targetPile, targetIndex)
-            val endY = getPileY(targetPile, targetIndex, topMarginPx, includeScroll = true) + if (targetPile.type == PileType.TABLEAU) (targetPile.cards.size) * (cardHeight * viewModel.tableauCardRevealFactor) else 0f
+                val animCard = card.copy()
+                animCard.x = fromX
+                animCard.y = fromY
+                animatingCards.add(animCard)
 
-            animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
-                // Perform model update AFTER animation
-                viewModel.autoMoveCard(card, fromPile, skipModelUpdate = false)
-                handleAutoComplete(topMarginPx)
+                viewModel.moveToFoundation(fromPile, foundation)
                 viewModel.saveGame(repository)
-            }
-        }
-    }
+                handleAutoComplete(topMarginPx)
 
-    fun handleStockClick(topMarginPx: Float) {
-        val stockPile = viewModel.stock.firstOrNull() ?: return
-        val wastePile = viewModel.waste.firstOrNull() ?: return
-        val startX = getPileX(stockPile, 0)
-        val startY = getPileY(stockPile, 0, topMarginPx)
-        val drawnCards = viewModel.drawFromStock()
-        val targetX = getPileX(wastePile, 0)
-        val targetY = getPileY(wastePile, 0, topMarginPx)
-
-        drawnCards.forEachIndexed { i, card ->
-            val endX = targetX + i.coerceAtMost(2) * with(density) { 20.dp.toPx() }
-            animateCardMove(card, Offset(startX, startY), Offset(endX, targetY))
-        }
-        viewModel.saveGame(repository)
-    }
-
-    fun handleDoubleTap(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
-        // Priority 1: Foundation
-        val targetFoundation = viewModel.foundations.firstOrNull { viewModel.canPlaceOnFoundation(card, it) }
-        if (targetFoundation != null) {
-            handleAutoMove(card, fromPile, pileIndex, cardIndex, topMarginPx)
-            return
-        }
-
-        // Priority 2: FreeCell (only for FreeCell game)
-        if (viewModel.gameType == GameType.FREECELL && fromPile.type != PileType.FREE_CELL) {
-            val targetFreeCell = viewModel.freeCells.firstOrNull { it.isEmpty() }
-            if (targetFreeCell != null) {
-                val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-                val startY = getPileY(fromPile, pileIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
-
-                val targetIndex = viewModel.freeCells.indexOf(targetFreeCell)
-                val endX = getPileX(targetFreeCell, targetIndex)
-                val endY = getPileY(targetFreeCell, targetIndex, topMarginPx, includeScroll = true)
-
-                animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
-                    viewModel.moveStackToFreeCell(fromPile, mutableListOf(card), targetFreeCell)
-                    handleAutoComplete(topMarginPx)
-                    viewModel.saveGame(repository)
+                coroutineScope.launch {
+                    val animX = Animatable(fromX)
+                    val animY = Animatable(fromY)
+                    launch { animX.animateTo(toX, tween(Constants.ANIMATION_DURATION_MS)) { animCard.x = value } }
+                    launch { animY.animateTo(toY, tween(Constants.ANIMATION_DURATION_MS)) { animCard.y = value } }
+                    delay(Constants.ANIMATION_DURATION_MS.toLong())
+                    animatingCards.remove(animCard)
                 }
                 return
             }
         }
 
+        // Priority 2: FreeCells
+        if (viewModel.gameType == GameType.FREECELL) {
+            viewModel.freeCells.forEachIndexed { fcIndex, freeCell ->
+                if (viewModel.canPlaceOnFreeCell(listOf(card), freeCell)) {
+                    val fromX = getPileX(fromPile, pileIndex)
+                    val fromY = topMarginPx + cardHeight + with(density) { 6.dp.toPx() } + cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) - scrollState.value
+                    val toX = getPileX(freeCell, fcIndex)
+                    val toY = topMarginPx
+
+                    val animCard = card.copy()
+                    animCard.x = fromX
+                    animCard.y = fromY
+                    animatingCards.add(animCard)
+
+                    viewModel.moveStackToFreeCell(fromPile, mutableListOf(card), freeCell)
+                    viewModel.saveGame(repository)
+                    handleAutoComplete(topMarginPx)
+
+                    coroutineScope.launch {
+                        val animX = Animatable(fromX)
+                        val animY = Animatable(fromY)
+                        launch { animX.animateTo(toX, tween(Constants.ANIMATION_DURATION_MS)) { animCard.x = value } }
+                        launch { animY.animateTo(toY, tween(Constants.ANIMATION_DURATION_MS)) { animCard.y = value } }
+                        delay(Constants.ANIMATION_DURATION_MS.toLong())
+                        animatingCards.remove(animCard)
+                    }
+                    return
+                }
+            }
+        }
+
         // Priority 3: Tableau (standard auto-move)
+        viewModel.tableau.forEachIndexed { tIndex, toTableau ->
+            if (toTableau != fromPile && viewModel.canPlaceOnTableau(listOf(card), toTableau)) {
+                val fromX = getPileX(fromPile, pileIndex)
+                val fromY = when (fromPile.type) {
+                    PileType.TABLEAU -> topMarginPx + cardHeight + with(density) { 6.dp.toPx() } + cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) - scrollState.value
+                    PileType.WASTE -> topMarginPx
+                    PileType.FREE_CELL -> topMarginPx
+                    else -> topMarginPx
+                }
+                val toX = getPileX(toTableau, tIndex)
+                val toY = topMarginPx + cardHeight + with(density) { 6.dp.toPx() } + toTableau.cards.size * (cardHeight * viewModel.tableauCardRevealFactor) - scrollState.value
+
+                val animCard = card.copy()
+                animCard.x = fromX
+                animCard.y = fromY
+                animatingCards.add(animCard)
+
+                viewModel.moveStackToTableau(fromPile, mutableListOf(card), toTableau)
+                viewModel.saveGame(repository)
+                handleAutoComplete(topMarginPx)
+
+                coroutineScope.launch {
+                    val animX = Animatable(fromX)
+                    val animY = Animatable(fromY)
+                    launch { animX.animateTo(toX, tween(Constants.ANIMATION_DURATION_MS)) { animCard.x = value } }
+                    launch { animY.animateTo(toY, tween(Constants.ANIMATION_DURATION_MS)) { animCard.y = value } }
+                    delay(Constants.ANIMATION_DURATION_MS.toLong())
+                    animatingCards.remove(animCard)
+                }
+                return
+            }
+        }
+    }
+
+    fun handleDoubleTap(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
+        // Double tap always tries foundations first, then freecells
         handleAutoMove(card, fromPile, pileIndex, cardIndex, topMarginPx)
+    }
+
+    fun handleStockClick(topMarginPx: Float) {
+        viewModel.drawFromStock()
+        viewModel.saveGame(repository)
+        handleAutoComplete(topMarginPx)
     }
 
     BoxWithConstraints(
@@ -246,11 +291,10 @@ fun SolitaireScreen(
             }
     ) {
         val topMarginPx = with(density) { (if (isLandscape) 16.dp else (this@BoxWithConstraints.maxHeight * 0.1f + 112.dp)).toPx() }
+        val topMarginDp = with(density) { topMarginPx.toDp() }
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (cardWidth > 0) {
-                val topMarginDp = with(density) { topMarginPx.toDp() }
-
                 // Top area: Stock, Waste, FreeCells, Foundations
                 Box(
                     modifier = Modifier
@@ -260,53 +304,36 @@ fun SolitaireScreen(
                 ) {
                     if (viewModel.gameType == GameType.KLONDIKE) {
                         // Stock
-                        val stock = viewModel.stock.firstOrNull()
-                        val stockX = with(density) { getPileX(stock ?: Pile(PileType.STOCK, mutableListOf()), 0).toDp() }
-                        Box(
-                            modifier = Modifier
-                                .offset(x = stockX)
-                                .size(cardWidthDp, cardHeightDp)
-                                .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (stock?.cards?.isNotEmpty() == true) {
-                                CardComponent(card = stock.cards.last(), modifier = Modifier.fillMaxSize())
-                            } else {
-                                Canvas(modifier = Modifier.size(24.dp)) {
-                                    drawCircle(Color.White, style = androidx.compose.ui.graphics.drawscope.Stroke(2f))
+                        viewModel.stock.firstOrNull()?.let { stockPile ->
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = with(density) { getPileX(stockPile, 0).toDp() })
+                                    .size(cardWidthDp, cardHeightDp)
+                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            ) {
+                                stockPile.topCard()?.let { card ->
+                                    CardComponent(card = card, modifier = Modifier.fillMaxSize())
                                 }
                             }
                         }
 
                         // Waste
-                        val waste = viewModel.waste.firstOrNull()
-                        val wasteX = with(density) { getPileX(waste ?: Pile(PileType.WASTE, mutableListOf()), 0).toDp() }
-                        Box(modifier = Modifier.offset(x = wasteX).width(cardWidthDp + (2 * 20).dp).height(cardHeightDp)) {
-                            waste?.cards?.takeLast(3)?.forEachIndexed { index, card ->
-                                if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
-                                    CardComponent(
-                                        card = card,
-                                        modifier = Modifier
-                                            .offset(x = (index * 20).dp)
-                                            .size(cardWidthDp, cardHeightDp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Foundations
-                        viewModel.foundations.forEachIndexed { index, pile ->
-                            val fx = with(density) { getPileX(pile, index).toDp() }
+                        viewModel.waste.firstOrNull()?.let { wastePile ->
                             Box(
                                 modifier = Modifier
-                                    .offset(x = fx)
-                                    .size(cardWidthDp, cardHeightDp)
-                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                    .offset(x = with(density) { getPileX(wastePile, 0).toDp() })
+                                    .size(cardWidthDp * 2.5f, cardHeightDp)
                             ) {
-                                pile.topCard()?.let { card ->
+                                val cards = wastePile.cards.takeLast(3)
+                                cards.forEachIndexed { index, card ->
                                     if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
-                                        CardComponent(card = card, modifier = Modifier.fillMaxSize())
+                                        CardComponent(
+                                            card = card,
+                                            modifier = Modifier
+                                                .offset(x = (index * 20).dp)
+                                                .size(cardWidthDp, cardHeightDp)
+                                        )
                                     }
                                 }
                             }
@@ -314,10 +341,9 @@ fun SolitaireScreen(
                     } else if (viewModel.gameType == GameType.FREECELL) {
                         // FreeCells
                         viewModel.freeCells.forEachIndexed { index, pile ->
-                            val fcx = with(density) { getPileX(pile, index).toDp() }
                             Box(
                                 modifier = Modifier
-                                    .offset(x = fcx)
+                                    .offset(x = with(density) { getPileX(pile, index).toDp() })
                                     .size(cardWidthDp, cardHeightDp)
                                     .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
                                     .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
@@ -329,21 +355,20 @@ fun SolitaireScreen(
                                 }
                             }
                         }
+                    }
 
-                        // Foundations
-                        viewModel.foundations.forEachIndexed { index, pile ->
-                            val fx = with(density) { getPileX(pile, index).toDp() }
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = fx)
-                                    .size(cardWidthDp, cardHeightDp)
-                                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                            ) {
-                                pile.topCard()?.let { card ->
-                                    if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
-                                        CardComponent(card = card, modifier = Modifier.fillMaxSize())
-                                    }
+                    // Foundations
+                    viewModel.foundations.forEachIndexed { index, pile ->
+                        Box(
+                            modifier = Modifier
+                                .offset(x = with(density) { getPileX(pile, index).toDp() })
+                                .size(cardWidthDp, cardHeightDp)
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        ) {
+                            pile.topCard()?.let { card ->
+                                if (draggingStack?.contains(card) != true && animatingCards.none { it.suit == card.suit && it.rank == card.rank }) {
+                                    CardComponent(card = card, modifier = Modifier.fillMaxSize())
                                 }
                             }
                         }
@@ -397,11 +422,11 @@ fun SolitaireScreen(
                         }
                     }
                 }
-
             }
 
-            // Interaction layer - Moved after the game elements (Tableau/Foundations) but before controls/overlays
-            Box(modifier = Modifier.fillMaxSize()
+            // Interaction layer
+            Box(modifier = Modifier
+                .fillMaxSize()
                 .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor, topMarginPx) {
                     detectTapGestures(
                         onDoubleTap = { offset ->
@@ -498,8 +523,12 @@ fun SolitaireScreen(
                                                 if (card.faceUp) {
                                                     handleAutoMove(card, pile, pileIndex, i, topMarginPx)
                                                 } else {
-                                                    card.faceUp = true
-                                                    viewModel.saveGame(repository)
+                                                    // In Klondike, tapping a face-down top card reveals it
+                                                    if (viewModel.gameType == GameType.KLONDIKE) {
+                                                        // Auto reveal
+                                                        card.faceUp = true
+                                                        viewModel.saveGame(repository)
+                                                    }
                                                 }
                                             }
                                             return@detectTapGestures
@@ -540,8 +569,7 @@ fun SolitaireScreen(
                                 topPiles.addAll(viewModel.foundations)
                                 topPiles.addAll(viewModel.freeCells)
                                 if (viewModel.gameType == GameType.KLONDIKE) {
-                                    viewModel.stock.firstOrNull()?.let { topPiles.add(it) }
-                                    viewModel.waste.firstOrNull()?.let { topPiles.add(it) }
+                                    topPiles.addAll(viewModel.waste)
                                 }
 
                                 for (pile in topPiles) {
@@ -551,13 +579,34 @@ fun SolitaireScreen(
                                         else -> 0
                                     }
                                     val rect = getPileRect(pile, pileIndex, topMarginPx)
-                                    if (rect.contains(offset) && pile.cards.isNotEmpty()) {
-                                        draggingStack = listOf(pile.cards.last())
-                                        draggingFromPile = pile
-                                        dragStartOffset = offset - Offset(rect.left, rect.top)
-                                        dragPosition = offset - dragStartOffset
-                                        interactionType = InteractionType.DRAGGING_CARD
-                                        return@detectDragGestures
+
+                                    if (pile.type == PileType.WASTE) {
+                                        val cards = pile.cards.takeLast(3)
+                                        for (i in cards.indices.reversed()) {
+                                            val card = cards[i]
+                                            val cardX = rect.left + i * with(density) { 20.dp.toPx() }
+                                            val cardRect = Rect(cardX, rect.top, cardX + cardWidth, rect.bottom)
+                                            if (cardRect.contains(offset)) {
+                                                if (card == pile.topCard()) {
+                                                    draggingStack = listOf(card)
+                                                    draggingFromPile = pile
+                                                    dragStartOffset = offset - Offset(cardX, rect.top)
+                                                    dragPosition = offset - dragStartOffset
+                                                    interactionType = InteractionType.DRAGGING_CARD
+                                                    return@detectDragGestures
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        if (rect.contains(offset) && pile.cards.isNotEmpty()) {
+                                            val card = pile.cards.last()
+                                            draggingStack = listOf(card)
+                                            draggingFromPile = pile
+                                            dragStartOffset = offset - Offset(rect.left, rect.top)
+                                            dragPosition = offset - dragStartOffset
+                                            interactionType = InteractionType.DRAGGING_CARD
+                                            return@detectDragGestures
+                                        }
                                     }
                                 }
                                 // Otherwise, ignore drag in top area background
@@ -692,66 +741,71 @@ fun SolitaireScreen(
                         }
                     )
                 }
+            )
 
-                // Controls
-                val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
-                if (isPortrait) {
+            // Controls
+            val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
+            if (isPortrait) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 16.dp)
+                        .offset(y = this@BoxWithConstraints.maxHeight * 0.1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Button(onClick = {
+                        viewModel.newGame()
+                        viewModel.saveGame(repository)
+                        coroutineScope.launch { scrollState.scrollTo(0) }
+                    }, modifier = Modifier.height(40.dp)) {
+                        Text("New Game", fontSize = 13.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = onOptionsClick, modifier = Modifier.height(40.dp)) {
+                        Text("Options", fontSize = 13.sp)
+                    }
+                }
+            } else {
+                if (viewModel.gameType == GameType.FREECELL) {
                     Column(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 16.dp)
-                            .offset(y = this@BoxWithConstraints.maxHeight * 0.1f),
-                        horizontalAlignment = Alignment.End
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 16.dp),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(onClick = {
                             viewModel.newGame()
                             viewModel.saveGame(repository)
                             coroutineScope.launch { scrollState.scrollTo(0) }
-                        }, modifier = Modifier.height(40.dp)) {
-                            Text("New Game", fontSize = 13.sp)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = onOptionsClick, modifier = Modifier.height(40.dp)) {
-                            Text("Options", fontSize = 13.sp)
-                        }
+                        }) { Text("New Game") }
+                        Button(onClick = onOptionsClick) { Text("Options") }
                     }
                 } else {
-                    if (viewModel.gameType == GameType.FREECELL) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 16.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(onClick = {
-                                viewModel.newGame()
-                                viewModel.saveGame(repository)
-                                coroutineScope.launch { scrollState.scrollTo(0) }
-                            }) { Text("New Game") }
-                            Button(onClick = onOptionsClick) { Text("Options") }
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) { Text("New Game") }
-                            Button(onClick = onOptionsClick) { Text("Options") }
-                        }
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) { Text("New Game") }
+                        Button(onClick = onOptionsClick) { Text("Options") }
                     }
                 }
             }
 
             // Win state overlay
             if (viewModel.checkWin()) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { }, contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "🎉 You Win!", color = Color.Yellow, fontSize = 48.sp)
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Text("You Win!", color = Color.White, fontSize = 48.sp)
+                        Spacer(modifier = Modifier.height(32.dp))
                         Button(onClick = {
                             viewModel.newGame()
                             viewModel.saveGame(repository)
