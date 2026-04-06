@@ -383,59 +383,6 @@ fun SolitaireScreen(
             }
         ) {
             if (cardWidth > 0) {
-                val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
-
-                // Controls
-                if (isPortrait) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 16.dp)
-                            .offset(y = this@BoxWithConstraints.maxHeight * 0.1f),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Button(onClick = {
-                            viewModel.newGame()
-                            viewModel.saveGame(repository)
-                            coroutineScope.launch { scrollState.scrollTo(0) }
-                        }, modifier = Modifier.height(40.dp)) {
-                            Text("New Game", fontSize = 13.sp)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = onOptionsClick, modifier = Modifier.height(40.dp)) {
-                            Text("Options", fontSize = 13.sp)
-                        }
-                    }
-                } else {
-                    if (viewModel.gameType == GameType.FREECELL) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 16.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(onClick = {
-                                viewModel.newGame()
-                                viewModel.saveGame(repository)
-                                coroutineScope.launch { scrollState.scrollTo(0) }
-                            }) { Text("New Game") }
-                            Button(onClick = onOptionsClick) { Text("Options") }
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) { Text("New Game") }
-                            Button(onClick = onOptionsClick) { Text("Options") }
-                        }
-                    }
-                }
-
                 val topMarginDp = with(density) { topMarginPx.toDp() }
 
                 // Top area: Stock, Waste, FreeCells, Foundations
@@ -596,6 +543,58 @@ fun SolitaireScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // Controls
+                val isPortrait = this@BoxWithConstraints.maxWidth < this@BoxWithConstraints.maxHeight
+                if (isPortrait) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 16.dp)
+                            .offset(y = this@BoxWithConstraints.maxHeight * 0.1f),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Button(onClick = {
+                            viewModel.newGame()
+                            viewModel.saveGame(repository)
+                            coroutineScope.launch { scrollState.scrollTo(0) }
+                        }, modifier = Modifier.height(40.dp)) {
+                            Text("New Game", fontSize = 13.sp)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = onOptionsClick, modifier = Modifier.height(40.dp)) {
+                            Text("Options", fontSize = 13.sp)
+                        }
+                    }
+                } else {
+                    if (viewModel.gameType == GameType.FREECELL) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 16.dp),
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(onClick = {
+                                viewModel.newGame()
+                                viewModel.saveGame(repository)
+                                coroutineScope.launch { scrollState.scrollTo(0) }
+                            }) { Text("New Game") }
+                            Button(onClick = onOptionsClick) { Text("Options") }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(onClick = { viewModel.newGame(); viewModel.saveGame(repository) }) { Text("New Game") }
+                            Button(onClick = onOptionsClick) { Text("Options") }
                         }
                     }
                 }
