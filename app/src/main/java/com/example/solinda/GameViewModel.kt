@@ -96,40 +96,51 @@ class GameViewModel : ViewModel() {
         }
     }
 
+    private fun getLongestConsecutiveSequenceLength(pile: Pile): Int {
+        if (pile.isEmpty()) return 0
+        var count = 1
+        for (i in pile.cards.size - 2 downTo 0) {
+            val top = pile.cards[i]
+            val bottom = pile.cards[i + 1]
+            if (top.faceUp && top.color != bottom.color && top.rank == bottom.rank + 1) {
+                count++
+            } else {
+                break
+            }
+        }
+        return count
+    }
+
     fun autoMoveCard(card: Card, fromPile: Pile, skipModelUpdate: Boolean = false): Pile? {
         if (card != fromPile.topCard() || fromPile.type == PileType.FOUNDATION) {
             return null
         }
 
-        // Priority 1: Move to a foundation
-        foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { targetFoundation ->
-            if (!skipModelUpdate) {
-                val cardToMove = fromPile.removeTopCard()!!
-                gameRules.revealIfNeeded(fromPile)
-                targetFoundation.addCard(cardToMove)
-            }
-            return targetFoundation
-        }
-
-        // Priority 2: Move to a tableau pile
+        // Priority 1: Move to a tableau pile (now prioritized over foundation)
         val validTableauMoves = tableau.filter { it != fromPile && gameRules.canPlaceOnTableau(listOf(card), it, freeCells, tableau) }
-        val (emptyPiles, stackedPiles) = validTableauMoves.partition { it.isEmpty() }
-
-        val targetPile = if (stackedPiles.isNotEmpty()) {
-            stackedPiles.maxByOrNull { it.cards.size }
-        } else if (emptyPiles.isNotEmpty()) {
-            emptyPiles.first()
-        } else {
-            null
+        if (validTableauMoves.isNotEmpty()) {
+            // Prioritize the pile with the longest consecutive sequence
+            val targetPile = validTableauMoves.maxByOrNull { getLongestConsecutiveSequenceLength(it) }
+            targetPile?.let {
+                if (!skipModelUpdate) {
+                    val cardToMove = fromPile.removeTopCard()!!
+                    gameRules.revealIfNeeded(fromPile)
+                    it.addCard(cardToMove)
+                }
+                return it
+            }
         }
 
-        targetPile?.let {
-            if (!skipModelUpdate) {
-                val cardToMove = fromPile.removeTopCard()!!
-                gameRules.revealIfNeeded(fromPile)
-                it.addCard(cardToMove)
+        // Priority 2: Move to a foundation (only if no tableau move available, and NOT for FreeCell via single click)
+        if (gameType != GameType.FREECELL) {
+            foundations.firstOrNull { gameRules.canPlaceOnFoundation(card, it) }?.let { targetFoundation ->
+                if (!skipModelUpdate) {
+                    val cardToMove = fromPile.removeTopCard()!!
+                    gameRules.revealIfNeeded(fromPile)
+                    targetFoundation.addCard(cardToMove)
+                }
+                return targetFoundation
             }
-            return it
         }
 
         return null
