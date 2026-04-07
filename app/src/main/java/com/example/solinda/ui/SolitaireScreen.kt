@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -24,12 +23,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.solinda.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 enum class InteractionType {
-    NONE, DRAGGING_CARD, SCROLLING, IGNORE
+    NONE, DRAGGING_CARD, IGNORE
 }
 
 @Composable
@@ -42,17 +40,6 @@ fun SolitaireScreen(
     var screenHeight by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
-    var autoScrollSpeed by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(autoScrollSpeed) {
-        if (autoScrollSpeed != 0f) {
-            while (true) {
-                scrollState.scrollBy(autoScrollSpeed)
-                delay(16)
-            }
-        }
-    }
 
     val isLandscape = screenWidth > screenHeight
     val cardWidth = remember(screenWidth, screenHeight, viewModel.gameType, viewModel.leftMargin, viewModel.rightMargin, viewModel.leftMarginLandscape, viewModel.rightMarginLandscape) {
@@ -103,18 +90,17 @@ fun SolitaireScreen(
         }
     }
 
-    fun getPileY(pile: Pile, index: Int, topMarginPx: Float, includeScroll: Boolean = true): Float {
+    fun getPileY(pile: Pile, index: Int, topMarginPx: Float): Float {
         return if (pile.type == PileType.TABLEAU) {
-            val scrollOffset = if (includeScroll) scrollState.value.toFloat() else 0f
-            topMarginPx + cardHeight + with(density) { 6.dp.toPx() } - scrollOffset
+            topMarginPx + cardHeight + with(density) { 6.dp.toPx() }
         } else {
             topMarginPx
         }
     }
 
-    fun getPileRect(pile: Pile, index: Int, topMarginPx: Float, includeScroll: Boolean = true): Rect {
+    fun getPileRect(pile: Pile, index: Int, topMarginPx: Float): Rect {
         val x = getPileX(pile, index)
-        val y = getPileY(pile, index, topMarginPx, includeScroll)
+        val y = getPileY(pile, index, topMarginPx)
         return Rect(x, y, x + cardWidth, y + cardHeight)
     }
 
@@ -150,11 +136,11 @@ fun SolitaireScreen(
                 }
                 val cardIndex = fromPile.cards.size - 1
                 val startX = getPileX(fromPile, fromIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-                val startY = getPileY(fromPile, fromIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+                val startY = getPileY(fromPile, fromIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
 
                 val targetIndex = viewModel.foundations.indexOf(targetPile)
                 val endX = getPileX(targetPile, targetIndex)
-                val endY = getPileY(targetPile, targetIndex, topMarginPx, includeScroll = true)
+                val endY = getPileY(targetPile, targetIndex, topMarginPx)
 
                 animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
                     viewModel.autoMoveToFoundation(skipModelUpdate = false)
@@ -167,7 +153,7 @@ fun SolitaireScreen(
 
     fun handleAutoMove(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
         val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-        val startY = getPileY(fromPile, pileIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+        val startY = getPileY(fromPile, pileIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
 
         val targetPile = viewModel.autoMoveCard(card, fromPile, skipModelUpdate = true)
         if (targetPile != null) {
@@ -177,7 +163,7 @@ fun SolitaireScreen(
                 else -> 0
             }
             val endX = getPileX(targetPile, targetIndex)
-            val endY = getPileY(targetPile, targetIndex, topMarginPx, includeScroll = true) + if (targetPile.type == PileType.TABLEAU) (targetPile.cards.size) * (cardHeight * viewModel.tableauCardRevealFactor) else 0f
+            val endY = getPileY(targetPile, targetIndex, topMarginPx) + if (targetPile.type == PileType.TABLEAU) (targetPile.cards.size) * (cardHeight * viewModel.tableauCardRevealFactor) else 0f
 
             animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
                 // Perform model update AFTER animation
@@ -217,11 +203,11 @@ fun SolitaireScreen(
             val targetFreeCell = viewModel.freeCells.firstOrNull { it.isEmpty() }
             if (targetFreeCell != null) {
                 val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
-                val startY = getPileY(fromPile, pileIndex, topMarginPx, includeScroll = true) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+                val startY = getPileY(fromPile, pileIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
 
                 val targetIndex = viewModel.freeCells.indexOf(targetFreeCell)
                 val endX = getPileX(targetFreeCell, targetIndex)
-                val endY = getPileY(targetFreeCell, targetIndex, topMarginPx, includeScroll = true)
+                val endY = getPileY(targetFreeCell, targetIndex, topMarginPx)
 
                 animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
                     viewModel.moveStackToFreeCell(fromPile, mutableListOf(card), targetFreeCell)
@@ -355,7 +341,6 @@ fun SolitaireScreen(
                     modifier = Modifier
                         .padding(top = topMarginDp + cardHeightDp + 6.dp)
                         .fillMaxSize()
-                        .verticalScroll(scrollState, enabled = false)
                 ) {
                     Row(
                         modifier = Modifier
@@ -608,33 +593,18 @@ fun SolitaireScreen(
                             }
 
                             // 3. Otherwise, it's a background drag in the tableau area
-                            interactionType = InteractionType.SCROLLING
+                            interactionType = InteractionType.NONE
                         },
                         onDrag = { change, dragAmount ->
                             when (interactionType) {
                                 InteractionType.DRAGGING_CARD -> {
                                     dragPosition += dragAmount
-                                    val y = change.position.y
-                                    val edgeThreshold = with(density) { 60.dp.toPx() }
-                                    val speed = with(density) { 10.dp.toPx() }
-                                    autoScrollSpeed = when {
-                                        y < edgeThreshold -> -speed
-                                        y > screenHeight - edgeThreshold -> speed
-                                        else -> 0f
-                                    }
-                                    change.consume()
-                                }
-                                InteractionType.SCROLLING -> {
-                                    coroutineScope.launch {
-                                        scrollState.scrollBy(-dragAmount.y)
-                                    }
                                     change.consume()
                                 }
                                 else -> { /* IGNORE or NONE */ }
                             }
                         },
                         onDragEnd = {
-                            autoScrollSpeed = 0f
                             val stack = draggingStack
                             val fromPile = draggingFromPile
                             val currentInteraction = interactionType
@@ -686,7 +656,6 @@ fun SolitaireScreen(
                             draggingFromPile = null
                         },
                         onDragCancel = {
-                            autoScrollSpeed = 0f
                             draggingStack = null
                             draggingFromPile = null
                             interactionType = InteractionType.NONE
@@ -708,7 +677,6 @@ fun SolitaireScreen(
                         Button(onClick = {
                             viewModel.newGame()
                             viewModel.saveGame(repository)
-                            coroutineScope.launch { scrollState.scrollTo(0) }
                         }, modifier = Modifier.height(40.dp)) {
                             Text("New Game", fontSize = 13.sp)
                         }
@@ -729,7 +697,6 @@ fun SolitaireScreen(
                             Button(onClick = {
                                 viewModel.newGame()
                                 viewModel.saveGame(repository)
-                                coroutineScope.launch { scrollState.scrollTo(0) }
                             }) { Text("New Game") }
                             Button(onClick = onOptionsClick) { Text("Options") }
                         }
@@ -757,7 +724,6 @@ fun SolitaireScreen(
                         Button(onClick = {
                             viewModel.newGame()
                             viewModel.saveGame(repository)
-                            coroutineScope.launch { scrollState.scrollTo(0) }
                         }) {
                             Text("New Game", fontSize = 20.sp)
                         }
@@ -782,27 +748,5 @@ fun SolitaireScreen(
                 }
             }
 
-            // Scrollbar
-            val maxTableauSize = viewModel.tableau.maxOfOrNull { it.cards.size } ?: 0
-            val contentHeight = cardHeight + maxTableauSize * (cardHeight * viewModel.tableauCardRevealFactor) + with(density) { 200.dp.toPx() }
-            if (contentHeight > screenHeight) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 2.dp)
-                        .width(4.dp)
-                        .fillMaxHeight(0.5f)
-                        .background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
-                ) {
-                    val scrollFraction = scrollState.value.toFloat() / (scrollState.maxValue.toFloat().coerceAtLeast(1f))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.2f)
-                            .offset(y = with(density) { (scrollFraction * (screenHeight * 0.5f * 0.8f)).toDp() })
-                            .background(Color.White.copy(alpha = 0.7f), RoundedCornerShape(2.dp))
-                    )
-                }
-            }
         }
     }
