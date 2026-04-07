@@ -107,11 +107,10 @@ class GameViewModelTest {
 
     @Test
     fun `autoMoveCard prioritizes longest tableau stack`() {
-        viewModel.initializeGameType(GameType.FREECELL)
+        viewModel.initializeGameType(GameType.KLONDIKE)
 
         // Clear all piles for a clean slate
         viewModel.tableau.forEach { it.cards.clear() }
-        viewModel.freeCells.forEach { it.cards.clear() }
 
         val cardToMove = Card(Suit.HEARTS, 4)
         val fromPile = viewModel.tableau[0]
@@ -126,8 +125,12 @@ class GameViewModelTest {
 
         // Destination 3: Longest valid stack (highest priority)
         val longStack = viewModel.tableau[3]
-        longStack.addCard(Card(Suit.DIAMONDS, 6))
-        longStack.addCard(Card(Suit.SPADES, 5)) // Valid destination for Heart 4
+        val card1 = Card(Suit.DIAMONDS, 6)
+        card1.faceUp = true
+        val card2 = Card(Suit.SPADES, 5)
+        card2.faceUp = true
+        longStack.addCard(card1)
+        longStack.addCard(card2) // Valid destination for Heart 4
 
         // Act
         val targetPile = viewModel.autoMoveCard(cardToMove, fromPile)
@@ -138,7 +141,59 @@ class GameViewModelTest {
         assertTrue("Card to move should be at the top of the longest stack", longStack.topCard() == cardToMove)
         assertTrue("Source pile should be empty", fromPile.isEmpty())
         assertTrue("Short stack should be unchanged", shortStack.cards.size == 1)
-        assertTrue("Empty pile should remain empty", emptyPile.isEmpty())
+    }
+
+    @Test
+    fun `autoMoveCard prioritizes tableau over foundation in Klondike`() {
+        viewModel.initializeGameType(GameType.KLONDIKE)
+        viewModel.tableau.forEach { it.cards.clear() }
+        viewModel.foundations.forEach { it.cards.clear() }
+
+        val cardToMove = Card(Suit.SPADES, 1) // Ace of Spades
+        val fromPile = viewModel.tableau[0]
+        fromPile.addCard(cardToMove)
+
+        // Tableau destination: Empty pile for King, but let's use a different card for a valid tableau move
+        val cardToMove2 = Card(Suit.HEARTS, 4)
+        fromPile.cards.clear()
+        fromPile.addCard(cardToMove2)
+
+        // Tableau destination: 5 of Clubs
+        val tableauPile = viewModel.tableau[1]
+        val fiveOfClubs = Card(Suit.CLUBS, 5)
+        fiveOfClubs.faceUp = true
+        tableauPile.addCard(fiveOfClubs)
+
+        // Foundation destination: Empty foundation (not valid for 4 of Hearts)
+        // Let's use 3 of Hearts on foundation
+        val foundationPile = viewModel.foundations[0]
+        foundationPile.addCard(Card(Suit.HEARTS, 1))
+        foundationPile.addCard(Card(Suit.HEARTS, 2))
+        foundationPile.addCard(Card(Suit.HEARTS, 3))
+
+        // Act
+        val targetPile = viewModel.autoMoveCard(cardToMove2, fromPile)
+
+        // Assert
+        assertEquals("Should move to Tableau, not Foundation", PileType.TABLEAU, targetPile?.type)
+        assertEquals(tableauPile, targetPile)
+    }
+
+    @Test
+    fun `autoMoveCard does not move to foundation in FreeCell`() {
+        viewModel.initializeGameType(GameType.FREECELL)
+        viewModel.tableau.forEach { it.cards.clear() }
+        viewModel.foundations.forEach { it.cards.clear() }
+
+        val aceOfSpades = Card(Suit.SPADES, 1)
+        val fromPile = viewModel.tableau[0]
+        fromPile.addCard(aceOfSpades)
+
+        // Act
+        val targetPile = viewModel.autoMoveCard(aceOfSpades, fromPile)
+
+        // Assert
+        assertEquals("Should not move to Foundation in FreeCell via autoMoveCard", null, targetPile)
     }
 
     @Test

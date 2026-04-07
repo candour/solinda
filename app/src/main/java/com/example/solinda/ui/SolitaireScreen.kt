@@ -191,10 +191,21 @@ fun SolitaireScreen(
     }
 
     fun handleDoubleTap(card: Card, fromPile: Pile, pileIndex: Int, cardIndex: Int, topMarginPx: Float) {
-        // Priority 1: Foundation
+        // Priority 1: Foundation (Double-tap always prioritizes Foundation)
         val targetFoundation = viewModel.foundations.firstOrNull { viewModel.canPlaceOnFoundation(card, it) }
         if (targetFoundation != null) {
-            handleAutoMove(card, fromPile, pileIndex, cardIndex, topMarginPx)
+            val startX = getPileX(fromPile, pileIndex) + (if (fromPile.type == PileType.WASTE) cardIndex.coerceAtLeast(0).coerceAtMost(2) * with(density) { 20.dp.toPx() } else 0f)
+            val startY = getPileY(fromPile, pileIndex, topMarginPx) + (if (fromPile.type == PileType.TABLEAU) cardIndex * (cardHeight * viewModel.tableauCardRevealFactor) else 0f)
+
+            val targetIndex = viewModel.foundations.indexOf(targetFoundation)
+            val endX = getPileX(targetFoundation, targetIndex)
+            val endY = getPileY(targetFoundation, targetIndex, topMarginPx)
+
+            animateCardMove(card, Offset(startX, startY), Offset(endX, endY)) {
+                viewModel.moveToFoundation(fromPile, targetFoundation)
+                handleAutoComplete(topMarginPx)
+                viewModel.saveGame(repository)
+            }
             return
         }
 
@@ -218,7 +229,7 @@ fun SolitaireScreen(
             }
         }
 
-        // Priority 3: Tableau (standard auto-move)
+        // Priority 3: Tableau (standard auto-move, which now prioritizes Tableau)
         handleAutoMove(card, fromPile, pileIndex, cardIndex, topMarginPx)
     }
 
@@ -384,7 +395,7 @@ fun SolitaireScreen(
                 }
             }
 
-            // Interaction layer - Moved after the game elements (Tableau/Foundations) but before controls/overlays
+            // Interaction layer - Combined tap and drag gestures into a single Box to prevent event blocking
             Box(modifier = Modifier.fillMaxSize()
                 .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor, topMarginPx) {
                     detectTapGestures(
@@ -514,19 +525,17 @@ fun SolitaireScreen(
                         }
                     )
                 }
-            )
-            Box(modifier = Modifier.fillMaxSize()
                 .pointerInput(cardWidth, cardHeight, viewModel.gameType, viewModel.tableauCardRevealFactor, topMarginPx) {
                     detectDragGestures(
                         onDragStart = { offset ->
                             // 1. Check if dragging in top area (non-scrollable area)
                             if (offset.y < topMarginPx + cardHeight + with(density) { 6.dp.toPx() }) {
-                                // Check if hitting a card in foundations or freecells or stock/waste
+                                // Check if hitting a card in foundations or freecells or waste
+                                // Stock is explicitly excluded to prevent dragging face-down cards
                                 val topPiles = mutableListOf<Pile>()
                                 topPiles.addAll(viewModel.foundations)
                                 topPiles.addAll(viewModel.freeCells)
                                 if (viewModel.gameType == GameType.KLONDIKE) {
-                                    viewModel.stock.firstOrNull()?.let { topPiles.add(it) }
                                     viewModel.waste.firstOrNull()?.let { topPiles.add(it) }
                                 }
 
