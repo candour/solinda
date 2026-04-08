@@ -7,9 +7,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -33,12 +33,12 @@ fun CardComponent(
     Surface(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp)),
-        color = Color.White,
+        color = if (isDimmed && card.faceUp) Color.LightGray else Color.White,
         shadowElevation = 2.dp
     ) {
         if (resourceId != 0) {
-            val colorFilter = if (isDimmed) {
-                ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.7f) })
+            val colorFilter = if (isDimmed && card.faceUp) {
+                ColorFilter.tint(Color.LightGray, BlendMode.Multiply)
             } else null
 
             Image(
@@ -46,14 +46,15 @@ fun CardComponent(
                 contentDescription = if (card.faceUp) "${card.rank} of ${card.suit}" else "Card Back",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillBounds,
-                colorFilter = colorFilter,
-                alpha = if (isDimmed) 0.6f else 1f
+                colorFilter = colorFilter
             )
         } else {
             // Fallback if resource not found
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = if (card.faceUp) Color.White else Color.DarkGray
+                color = if (card.faceUp) {
+                    if (isDimmed) Color.LightGray else Color.White
+                } else Color.DarkGray
             ) {}
         }
     }

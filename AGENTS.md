@@ -48,6 +48,7 @@ When adding new methods, especially to ViewModel or game logic classes, please a
 *   **Foundation Alignment:** Klondike foundations align with columns 4-7, and FreeCell foundations align with columns 5-8.
 *   **Auto-Complete:** Handled recursively in the UI layer (`SolitaireScreen.kt`) via `handleAutoComplete` to manage chain reaction animation timing.
 *   **Scrolling:** Tableau uses `Modifier.verticalScroll`. Hit detection (`getPileRect`) must account for the current `scrollState.value`.
+*   **Dimming:** Tableau cards are visually dimmed using a light gray background and a gray tint (`BlendMode.Multiply`) if they are immovable. This only applies to face-up cards.
 
 ### Jewelinda
 *   **Gem Animations:** Uses nested `graphicsLayer` modifiers. The outer layer applies squash-and-stretch (bottom-center anchor: `0.5f, 1f`), and the inner layer handles rotation/pulse (true center: `0.5f, 0.5f`).
