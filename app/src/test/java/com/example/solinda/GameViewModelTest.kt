@@ -189,6 +189,14 @@ class GameViewModelTest {
         val fromPile = viewModel.tableau[0]
         fromPile.addCard(aceOfSpades)
 
+        // In FreeCell, autoMoveCard will move to tableau if a spot is available.
+        // To test it returns null, we should ensure no valid tableau move exists.
+        // An empty tableau pile is a valid move for any card in FreeCell.
+        // So let's fill all tableau piles with something that can't take an Ace.
+        viewModel.tableau.forEach { it.addCard(Card(Suit.SPADES, 10)) }
+        fromPile.cards.clear()
+        fromPile.addCard(aceOfSpades)
+
         // Act
         val targetPile = viewModel.autoMoveCard(aceOfSpades, fromPile)
 

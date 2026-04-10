@@ -162,6 +162,26 @@ class GameViewModel : ViewModel() {
         return gameRules.canPlaceOnFreeCell(stack, freeCell)
     }
 
+    fun hasAnyValidMove(stack: List<Card>, fromPile: Pile): Boolean {
+        if (stack.isEmpty()) return false
+
+        // Try foundations
+        if (stack.size == 1) {
+            val card = stack.first()
+            if (foundations.any { canPlaceOnFoundation(card, it) }) return true
+        }
+
+        // Try tableau
+        if (tableau.any { it != fromPile && canPlaceOnTableau(stack, it) }) return true
+
+        // Try FreeCells
+        if (gameType == GameType.FREECELL && stack.size == 1) {
+            if (freeCells.any { canPlaceOnFreeCell(stack, it) }) return true
+        }
+
+        return false
+    }
+
     fun isValidTableauStack(stack: List<Card>): Boolean {
         return gameRules.isValidTableauStack(stack)
     }

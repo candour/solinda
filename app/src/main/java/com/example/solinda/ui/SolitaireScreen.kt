@@ -19,10 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.view.HapticFeedbackConstants
 import com.example.solinda.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -39,6 +42,7 @@ fun SolitaireScreen(
     var screenWidth by remember { mutableStateOf(0f) }
     var screenHeight by remember { mutableStateOf(0f) }
     val density = LocalDensity.current
+    val view = LocalView.current
     val coroutineScope = rememberCoroutineScope()
 
     val isLandscape = screenWidth > screenHeight
@@ -569,25 +573,56 @@ fun SolitaireScreen(
                                     val cardRect = Rect(rect.left, cardY, rect.right, cardY + cardHeight)
                                     if (cardRect.contains(offset)) {
                                         if (card.faceUp) {
-                                            val isMoveable = if (viewModel.gameType == GameType.FREECELL) {
-                                                // Simplified check for "is moveable" in FreeCell:
-                                                // It must be part of a valid sequence AND not dimmed
-                                                val stack = pile.cards.subList(i, pile.cards.size)
-                                                val isValidSequence = viewModel.isValidTableauStack(stack)
-                                                if (isValidSequence) {
+                                            var finalIndex = i
+
+                                            // 1. Check if the touched card has a valid stack and move
+                                            val touchedStack = pile.cards.subList(i, pile.cards.size)
+                                            val touchedIsValid = viewModel.isValidTableauStack(touchedStack)
+                                            val touchedHasMove = touchedIsValid && viewModel.hasAnyValidMove(touchedStack, pile)
+
+                                            if (!touchedHasMove) {
+                                                // 2. Check neighbors
+                                                val belowIndex = i - 1
+                                                val aboveIndex = i + 1
+
+                                                val belowStack = if (belowIndex >= 0 && pile.cards[belowIndex].faceUp) pile.cards.subList(belowIndex, pile.cards.size) else null
+                                                val aboveStack = if (aboveIndex < pile.cards.size && pile.cards[aboveIndex].faceUp) pile.cards.subList(aboveIndex, pile.cards.size) else null
+
+                                                val belowHasMove = belowStack != null && viewModel.isValidTableauStack(belowStack) && viewModel.hasAnyValidMove(belowStack, pile)
+                                                val aboveHasMove = aboveStack != null && viewModel.isValidTableauStack(aboveStack) && viewModel.hasAnyValidMove(aboveStack, pile)
+
+                                                if (belowHasMove && aboveHasMove) {
+                                                    finalIndex = belowIndex
+                                                } else if (belowHasMove) {
+                                                    finalIndex = belowIndex
+                                                } else if (aboveHasMove) {
+                                                    finalIndex = aboveIndex
+                                                }
+                                            }
+
+                                            // Trigger haptic if selection was adjusted
+                                            if (finalIndex != i && viewModel.isHapticsEnabled) {
+                                                coroutineScope.launch {
+                                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                    delay(50)
+                                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                }
+                                            }
+
+                                            val finalStack = pile.cards.subList(finalIndex, pile.cards.size)
+                                            if (viewModel.isValidTableauStack(finalStack)) {
+                                                val isMoveable = if (viewModel.gameType == GameType.FREECELL) {
                                                     val emptyFreeCells = viewModel.freeCells.count { it.isEmpty() }
                                                     val emptyTableauPiles = viewModel.tableau.count { it.isEmpty() && it != pile }
                                                     val maxStackSize = (1 + emptyFreeCells) * (1 shl emptyTableauPiles)
-                                                    stack.size <= maxStackSize
-                                                } else false
-                                            } else true // In Klondike, if faceUp, it's generally moveable if sub-stack is valid
+                                                    finalStack.size <= maxStackSize
+                                                } else true
 
-                                            if (isMoveable) {
-                                                val stack = viewModel.findValidSubStack(pile, i)
-                                                if (stack.first() == card) {
-                                                    draggingStack = stack
+                                                if (isMoveable) {
+                                                    draggingStack = finalStack.toMutableList()
                                                     draggingFromPile = pile
-                                                    dragStartOffset = offset - Offset(rect.left, cardY)
+                                                    val finalCardY = rect.top + finalIndex * (cardHeight * viewModel.tableauCardRevealFactor)
+                                                    dragStartOffset = offset - Offset(rect.left, finalCardY)
                                                     dragPosition = offset - dragStartOffset
                                                     interactionType = InteractionType.DRAGGING_CARD
                                                     return@detectDragGestures
